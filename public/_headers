@@ -1,0 +1,50 @@
+# HTTP headers for Whitebox. Cloudflare Workers static assets reads this file.
+#
+# Two of these carry weight the marketing copy depends on. If you loosen them,
+# the claims on the About page and in the README stop being true.
+
+/*
+  # ── The load-bearing one ────────────────────────────────────────────────
+  # Cloudflare rewrites HTML at the edge on free proxied zones and appends
+  # static.cloudflareinsights.com/beacon.min.js — the Web Analytics RUM
+  # beacon. It is on by default, it is not in this repository, and it does
+  # not appear in `curl` output unless you send a browser User-Agent, which
+  # is how it survived the first round of checking here.
+  #
+  # `no-transform` is the documented instruction that forbids the proxy from
+  # modifying the payload, so the injection cannot happen. This is preferred
+  # over the dashboard toggle (Web Analytics → Manage site → Disable) because
+  # the dashboard requires *adding* the site to the analytics product in order
+  # to opt out of it, and because a setting someone can click away is weaker
+  # than a header that lives in git.
+  #
+  # The CSP below is the belt to this suspenders: even if a future edge
+  # feature bypasses no-transform, script-src 'self' blocks the load.
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+
+  # No third-party anything. Two directives need explaining:
+  #
+  # 'unsafe-inline' — required for the small inline scripts Astro emits (theme
+  # bootstrap, tool slug). They are first-party and visible in page source.
+  #
+  # 'wasm-unsafe-eval' — required by hash-wasm (BLAKE3 / SHA3 / CRC32, which
+  # WebCrypto does not provide). Without it WebAssembly.compile() throws and
+  # three of the seven hashes silently vanish. This is the *narrow* directive:
+  # it permits WASM compilation only, NOT eval() or new Function(), so it is
+  # meaningfully weaker than the 'unsafe-eval' the error message suggests.
+  #
+  # connect-src 'none' means no fetch/XHR/beacon can leave the page at all,
+  # which is the enforcement behind "nothing you type is uploaded".
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'
+
+  # Deny every powerful feature. None of the 25 tools needs any of them.
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), interest-cohort=()
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Cross-Origin-Opener-Policy: same-origin
+
+# Fingerprinted assets are immutable and safe to cache hard. They still carry
+# no-transform so the edge cannot rewrite JS either.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable, no-transform
