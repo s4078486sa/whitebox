@@ -1,0 +1,91 @@
+---
+import Base from '../../layouts/Base.astro';
+import Field from '../../components/Field.astro';
+import { TOOLS, getTool } from '../../lib/registry';
+import { layoutOf } from '../../lib/types';
+
+export function getStaticPaths() {
+  return TOOLS.map((t) => ({ params: { slug: t.slug } }));
+}
+
+const { slug } = Astro.params;
+const meta = getTool(slug!)!;
+const layout = layoutOf(meta);
+const areas = meta.inputs.filter((f) => f.type === 'textarea');
+const controls = meta.inputs.filter((f) => f.type !== 'textarea');
+---
+
+<Base title={`${meta.name} · Whitebox`} description={meta.blurb}>
+  <div class="tool-head">
+    <div class="tool-title">
+      <h1>{meta.name}</h1>
+      <span class="pill" tabindex="0" role="note">
+        纯本地运行 · 零上传
+        <span class="tip">
+          计算全部在浏览器内用 Web Crypto / WebAssembly 执行，不发起任何网络请求，断网也能用。
+          {meta.sensitive && ' 本页涉及机密，输入内容不会写进网址，也不会存进浏览器。'}
+        </span>
+      </span>
+      {!meta.sensitive && (
+        <button class="btn" id="share" type="button" disabled>复制分享链接</button>
+      )}
+    </div>
+    <p>{meta.blurb}</p>
+  </div>
+
+  <div class={layout === 'split' ? 'split' : 'stack'}>
+    {layout === 'output' ? (
+      <>
+        <div class="panel">
+          <div class="panel-head"><span>参数</span><span class="grow"></span>
+            {meta.action && <button class="btn primary" id="action" type="button">{meta.action}</button>}
+          </div>
+          <div class="panel-body"><div class="controls">{controls.map((f) => <Field field={f} />)}</div></div>
+        </div>
+        <div class="panel out"><div id="out"></div></div>
+      </>
+    ) : layout === 'split' ? (
+      <>
+        <div class="panel">
+          <div class="panel-head"><span>{areas[0]!.label}</span><span class="grow"></span><span class="counts" id="counts"></span></div>
+          <div class="panel-body">
+            <Field field={areas[0]!} />
+            {controls.length > 0 && <div class="controls" style="margin-top:var(--space-3)">{controls.map((f) => <Field field={f} />)}</div>}
+          </div>
+        </div>
+        <div class="panel out"><div id="out"></div></div>
+      </>
+    ) : (
+      <>
+        <div class="panel">
+          <div class="panel-head"><span>输入</span><span class="grow"></span><span class="counts" id="counts"></span>
+            {meta.action && <button class="btn primary" id="action" type="button">{meta.action}</button>}
+          </div>
+          <div class="panel-body">
+            {controls.length > 0 && <div class="controls" style="margin-bottom:var(--space-3)">{controls.map((f) => <Field field={f} />)}</div>}
+            <div class={areas.length > 1 ? 'split' : ''}>{areas.map((f) => <Field field={f} />)}</div>
+          </div>
+        </div>
+        <div class="panel out"><div id="out"></div></div>
+      </>
+    )}
+  </div>
+
+  <div class="err" id="err"></div>
+  <div class="warn" id="warn"></div>
+
+  <script define:vars={{ slug }}>
+    window.__WB_SLUG = slug;
+  </script>
+  <script>
+    import { getTool } from '../../lib/registry';
+    import { mountTool } from '../../lib/runtime';
+    const meta = getTool((window as any).__WB_SLUG);
+    if (meta) mountTool(meta);
+  </script>
+</Base>
+
+<style>
+  .field-err > label { color: var(--danger); }
+  .field-err textarea, .field-err input, .field-err select { border-color: var(--danger); }
+</style>

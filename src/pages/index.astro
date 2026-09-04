@@ -1,0 +1,162 @@
+---
+import Base from '../layouts/Base.astro';
+import { TOOLS } from '../lib/registry';
+import { CATEGORIES } from '../lib/types';
+---
+
+<Base
+  title="Whitebox — 纯本地的开发者工具箱"
+  description="25 个开发者常用工具，全部在浏览器内运行：编解码、哈希、密钥、正则、时间戳、CIDR。无后端，无上传，可断网使用。"
+>
+  <div class="hero">
+    <h1>Whitebox</h1>
+    <p>25 个开发者工具，全部在你的浏览器里跑完。没有后端，断网也能用。</p>
+    <div class="search-wrap">
+      <input
+        class="search-input"
+        id="q"
+        type="search"
+        placeholder="搜索工具，或直接粘贴一段内容"
+        aria-label="搜索工具，或粘贴内容自动识别"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <span class="search-hint"><kbd class="kbd">/</kbd></span>
+      <div class="results" id="results" role="listbox" aria-label="搜索结果"></div>
+    </div>
+  </div>
+
+  {CATEGORIES.map((c) => (
+    <section class="cat">
+      <h2>{c.label}</h2>
+      <div class="grid">
+        {TOOLS.filter((t) => t.category === c.id).map((t) => (
+          <a class="card" href={`/t/${t.slug}/`}>
+            <b>{t.name}</b>
+            <span>{t.blurb}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  ))}
+
+  <script>
+    import { sniff } from '../lib/sniff';
+
+    const tools = (window as any).__WB_TOOLS as {
+      slug: string; name: string; blurb: string; aliases: string[];
+    }[];
+    const q = document.getElementById('q') as HTMLInputElement;
+    const box = document.getElementById('results') as HTMLDivElement;
+    let cursor = -1;
+
+    function render(raw: string) {
+      box.textContent = '';
+      cursor = -1;
+      const s = raw.trim();
+      if (!s) return;
+
+      // Designer's rule: a paste that looks like data offers candidate cards
+      // pinned above ordinary name matches — it never replaces the interface.
+      // No length gate here: sniff() already enforces its own minimum (6) and
+      // rejects anything it cannot confirm. A gate of 8 silently swallowed
+      // short-but-unambiguous inputs like `#58a6ff` and `{"a":1}`.
+      const cands = sniff(s);
+      if (cands.length) {
+        const head = document.createElement('div');
+        head.className = 'sniff-head';
+        head.textContent = '检测到可能的格式';
+        box.appendChild(head);
+        for (const c of cands) {
+          const tool = tools.find((t) => t.slug === c.slug);
+          const a = document.createElement('a');
+          a.className = 'result';
+          a.setAttribute('role', 'option');
+          const params = new URLSearchParams(c.params ?? {});
+          const primary = c.value ? 'text' : '';
+          if (c.value) {
+            // field id differs per tool; resolve the first textarea/text field
+            const map: Record<string, string> = {
+              jwt: 'token', cidr: 'cidr', cron: 'expr', color: 'c',
+              timestamp: 'input', 'base-convert': 'num',
+            };
+            params.set(map[c.slug] ?? 'text', c.value);
+          }
+          a.href = `/t/${c.slug}/#${params.toString()}`;
+          a.innerHTML = `<span class="result-tag">${tool?.name ?? c.slug}</span><span class="result-blurb">${c.label.replace(/</g, '&lt;')}</span>`;
+          box.appendChild(a);
+        }
+      }
+
+      const needle = s.toLowerCase();
+      const hits = tools
+        .map((t) => {
+          const hay = [t.name, t.blurb, ...t.aliases].join(' ').toLowerCase();
+          if (t.aliases.some((a) => a === needle)) return { t, score: 3 };
+          if (t.name.toLowerCase().includes(needle)) return { t, score: 2 };
+          if (hay.includes(needle)) return { t, score: 1 };
+          return null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => b!.score - a!.score)
+        .slice(0, 8);
+
+      if (!hits.length && !cands.length) {
+        const empty = document.createElement('div');
+        empty.className = 'sniff-head';
+        empty.textContent = '没有匹配的工具';
+        box.appendChild(empty);
+        return;
+      }
+      if (hits.length && cands.length) {
+        const head = document.createElement('div');
+        head.className = 'sniff-head';
+        head.textContent = '工具';
+        box.appendChild(head);
+      }
+      for (const h of hits) {
+        const a = document.createElement('a');
+        a.className = 'result';
+        a.setAttribute('role', 'option');
+        a.href = `/t/${h!.t.slug}/`;
+        a.innerHTML = `<span class="result-name">${h!.t.name}</span><span class="result-blurb">${h!.t.blurb}</span>`;
+        box.appendChild(a);
+      }
+    }
+
+    q.addEventListener('input', () => render(q.value));
+
+    q.addEventListener('keydown', (e) => {
+      const items = [...box.querySelectorAll<HTMLAnchorElement>('a.result')];
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!items.length) return;
+        cursor = e.key === 'ArrowDown'
+          ? (cursor + 1) % items.length
+          : (cursor - 1 + items.length) % items.length;
+        items.forEach((el, i) => el.setAttribute('aria-selected', String(i === cursor)));
+        items[cursor]!.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter') {
+        const target = items[cursor] ?? items[0];
+        if (target) { e.preventDefault(); location.href = target.href; }
+      } else if (e.key === 'Escape') {
+        q.value = '';
+        render('');
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key === 'k')) {
+        e.preventDefault();
+        q.focus();
+        q.select();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!box.contains(e.target as Node) && e.target !== q) box.textContent = '';
+    });
+  </script>
+</Base>

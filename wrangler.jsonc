@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "whitebox",
+  "compatibility_date": "2026-09-01",
+  // Static-asset-only Worker: there is no server code at all. Every tool runs
+  // in the visitor's browser, which is the product's whole claim — so the
+  // deployment must not be able to see input even in principle.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  },
+  "observability": { "enabled": false }
+}

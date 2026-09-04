@@ -1,0 +1,67 @@
+---
+import '../styles/app.css';
+import { TOOLS } from '../lib/registry';
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+const tools = TOOLS.map((t) => ({ slug: t.slug, name: t.name, blurb: t.blurb, aliases: t.aliases }));
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <script is:inline>
+      // Applied before first paint so the theme never flashes.
+      try {
+        const t = localStorage.getItem('wb-theme');
+        if (t) document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到主内容</a>
+    <header class="topbar">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>Whitebox</a>
+      <span class="topbar-spacer"></span>
+      <nav>
+        <a href="/about/">关于</a>
+        <a href="https://git.utlas.de/EyebrowsWhite/whitebox" rel="noopener">源码</a>
+      </nav>
+      <button class="iconbtn" id="theme" type="button" aria-label="切换明暗主题" title="切换明暗主题">◐</button>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer>
+      <span>Whitebox — 全部计算在你的浏览器内完成，无后端、无追踪、无上传。</span>
+      <span class="topbar-spacer"></span>
+      <a href="https://git.utlas.de/EyebrowsWhite/whitebox" rel="noopener">源码</a>
+      <a href="/about/">关于</a>
+    </footer>
+
+    <script is:inline define:vars={{ tools }}>
+      window.__WB_TOOLS = tools;
+      document.getElementById('theme').addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme
+          || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        try { localStorage.setItem('wb-theme', next); } catch {}
+      });
+    </script>
+  </body>
+</html>

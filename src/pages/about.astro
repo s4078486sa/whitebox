@@ -1,0 +1,54 @@
+---
+import Base from '../layouts/Base.astro';
+import { TOOLS } from '../lib/registry';
+---
+
+<Base title="关于 · Whitebox" description="Whitebox 的设计原则、隐私承诺与技术实现。">
+  <div style="max-width:680px">
+    <h1 style="font-size:var(--text-xl)">关于 Whitebox</h1>
+
+    <p style="color:var(--text-muted)">
+      {TOOLS.length} 个开发者工具，全部在浏览器内完成计算。没有后端，没有账号，没有分析脚本。
+    </p>
+
+    <h2 style="font-size:var(--text-lg);margin-top:var(--space-8)">隐私</h2>
+    <p>
+      这个站点是一堆静态文件。所有工具都是页面内的 JavaScript 或 WebAssembly，
+      运行时不会向任何服务器发请求——把网断掉，功能完全不变，这是最好的验证方式。
+    </p>
+    <p>
+      涉及机密的工具（密码生成、密钥对、JWT、HMAC、TOTP）额外做了三件事：
+      不把输入写进网址、不写进浏览器存储、不提供分享链接按钮。
+      密钥只存在于当前页面的内存里，刷新即永久消失。
+    </p>
+
+    <h2 style="font-size:var(--text-lg);margin-top:var(--space-8)">分享链接</h2>
+    <p>
+      非机密工具会把输入实时编码进网址的 <code class="mono">#</code> 片段。
+      这意味着刷新不丢失，也可以把「我配的这个 cron 对不对」直接发给同事。
+      <code class="mono">#</code> 后面的内容永远不会发送到服务器。
+    </p>
+
+    <h2 style="font-size:var(--text-lg);margin-top:var(--space-8)">实现</h2>
+    <p>
+      Astro 静态输出，无前端框架运行时。哈希用
+      <a href="https://github.com/Daninet/hash-wasm" rel="noopener">hash-wasm</a>，
+      密钥与 HMAC 用浏览器原生 Web Crypto，
+      部署在 Cloudflare Workers 的静态资源上。
+    </p>
+    <p>
+      源码在 <a href="https://git.utlas.de/EyebrowsWhite/whitebox" rel="noopener">git.utlas.de/EyebrowsWhite/whitebox</a>。
+      发现问题欢迎提 issue。
+    </p>
+
+    <h2 style="font-size:var(--text-lg);margin-top:var(--space-8)">键盘</h2>
+    <table class="data" style="margin-top:var(--space-3)">
+      <tbody>
+        <tr><td><kbd class="kbd">/</kbd> 或 <kbd class="kbd">Ctrl K</kbd></td><td>聚焦搜索框</td></tr>
+        <tr><td><kbd class="kbd">↑</kbd> <kbd class="kbd">↓</kbd></td><td>在搜索结果间移动</td></tr>
+        <tr><td><kbd class="kbd">Enter</kbd></td><td>打开选中的工具</td></tr>
+        <tr><td><kbd class="kbd">Ctrl Enter</kbd></td><td>复制主输出</td></tr>
+      </tbody>
+    </table>
+  </div>
+</Base>

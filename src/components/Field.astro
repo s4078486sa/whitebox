@@ -1,0 +1,40 @@
+---
+import type { Field } from '../lib/types';
+interface Props { field: Field }
+const f = Astro.props.field;
+const id = `f-${f.id}`;
+---
+{f.type === 'checkbox' ? (
+  <div class="field inline">
+    <input type="checkbox" id={id} checked={f.default === true} />
+    <label for={id}>{f.label}</label>
+  </div>
+) : (
+  <div class="field">
+    <label for={id}>
+      {f.label}
+      {f.type === 'range' && <span class="counts"> — <span id={`v-${f.id}`}>{f.default}</span></span>}
+    </label>
+
+    {f.type === 'textarea' && (
+      <textarea id={id} class={f.mono ? 'mono' : ''} placeholder={f.placeholder} spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off">{f.default}</textarea>
+    )}
+    {f.type === 'text' && (
+      <input type="text" id={id} class={f.mono ? 'mono' : ''} placeholder={f.placeholder} value={f.default} spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" />
+    )}
+    {f.type === 'number' && (
+      <input type="number" id={id} value={f.default} min={f.min} max={f.max} step={f.step} />
+    )}
+    {f.type === 'range' && (
+      <input type="range" id={id} value={f.default} min={f.min} max={f.max} step={f.step} />
+    )}
+    {f.type === 'color' && <input type="color" id={id} value={f.default} />}
+    {f.type === 'select' && (
+      <select id={id}>
+        {f.options?.map((o) => <option value={o.value} selected={o.value === f.default}>{o.label}</option>)}
+      </select>
+    )}
+
+    {f.hint && <span class="hint">{f.hint}</span>}
+  </div>
+)}
