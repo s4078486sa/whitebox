@@ -34,6 +34,10 @@ const tools = TOOLS.map((t) => ({ slug: t.slug, name: t.name, blurb: t.blurb, al
     <a class="skip" href="#main">跳到主内容</a>
     <header class="topbar">
       <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>Whitebox</a>
+      <button class="palette-trigger" id="palette-trigger" type="button" aria-label="搜索工具">
+        <span>搜索工具…</span>
+        <kbd class="kbd">Ctrl K</kbd>
+      </button>
       <span class="topbar-spacer"></span>
       <nav>
         <a href="/about/">关于</a>
@@ -62,6 +66,12 @@ const tools = TOOLS.map((t) => ({ slug: t.slug, name: t.name, blurb: t.blurb, al
         document.documentElement.dataset.theme = next;
         try { localStorage.setItem('wb-theme', next); } catch {}
       });
+    </script>
+    <script>
+      import { mountPalette, pushRecent } from '../lib/palette';
+      mountPalette();
+      const m = location.pathname.match(/^\/t\/([^/]+)\/?$/);
+      if (m) pushRecent(m[1]);
     </script>
   </body>
 </html>

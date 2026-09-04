@@ -236,7 +236,7 @@ export const hmac: [ToolMeta, ToolImpl] = [
     sensitive: true,
     workbench: true,
     inputs: [
-      { id: 'msg', type: 'textarea', label: '消息', mono: true, sample: 'payload to sign' },
+      { id: 'msg', type: 'textarea', label: '消息', mono: true, sample: 'what do ya want for nothing?' },
       { id: 'key', type: 'text', label: '密钥', mono: true, placeholder: '共享密钥', default: 'secret' },
       {
         id: 'alg',
@@ -391,6 +391,7 @@ export const totp: [ToolMeta, ToolImpl] = [
         mono: true,
         placeholder: 'JBSWY3DPEHPK3PXP',
         hint: '来自 otpauth:// 链接里的 secret 参数',
+        sample: 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ',
       },
       { id: 'digits', type: 'select', label: '位数', default: '6', options: [{ value: '6', label: '6 位' }, { value: '8', label: '8 位' }] },
       { id: 'period', type: 'select', label: '周期', default: '30', options: [{ value: '30', label: '30 秒' }, { value: '60', label: '60 秒' }] },
@@ -418,7 +419,7 @@ export const totp: [ToolMeta, ToolImpl] = [
       const period = N(v, 'period') || 30;
       const alg = S(v, 'alg') || 'SHA-1';
 
-      const ck = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: alg }, false, ['sign']);
+      const ck = await crypto.subtle.importKey('raw', key as BufferSource, { name: 'HMAC', hash: alg }, false, ['sign']);
       const code = async (counter: number) => {
         const buf = new ArrayBuffer(8);
         // Big-endian 64-bit counter (RFC 4226 §5.1). setUint32's third

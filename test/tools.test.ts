@@ -17,6 +17,19 @@ import { layoutOf } from '../src/lib/types.ts';
 import { TOOLS, IMPLS } from '../src/lib/registry.ts';
 
 const run = async (pair, values) => await pair[1].run(values);
+
+/** find-or-fail: keeps strict null checks satisfied without `!` everywhere. */
+function tool(slug) {
+  const t = TOOLS.find((x) => x.slug === slug);
+  assert.ok(t, `no such tool: ${slug}`);
+  return t;
+}
+function field(slug, id) {
+  const f = tool(slug).inputs.find((x) => x.id === id);
+  assert.ok(f, `${slug} has no field ${id}`);
+  return f;
+}
+
 const text = (res) => res.text ?? res.blocks?.[0]?.text ?? '';
 const blockLabelled = (res, label) => res.blocks.find((b) => b.label === label)?.text ?? '';
 
@@ -168,7 +181,7 @@ test('password distribution is not visibly biased', async () => {
   // 8000 chars over a 10-symbol alphabet; a modulo bug skews the low digits hard
   const res = await run(password, { len: 100, count: 80, lower: false, upper: false, digit: true, sym: false, clear: false });
   const chars = text(res).replace(/\n/g, '');
-  const counts = {};
+  const counts: Record<string, number> = {};
   for (const c of chars) counts[c] = (counts[c] ?? 0) + 1;
   const freqs = Object.values(counts);
   assert.equal(freqs.length, 10);
@@ -453,27 +466,27 @@ test('registry is internally consistent', () => {
 
 test('every secret-bearing tool is marked sensitive', () => {
   for (const slug of ['password', 'keypair', 'jwt', 'hmac', 'totp']) {
-    assert.equal(TOOLS.find((t) => t.slug === slug).sensitive, true, `${slug} must be sensitive`);
+    assert.equal(tool(slug).sensitive, true, `${slug} must be sensitive`);
   }
   // and non-secret tools must NOT be, or they lose URL sharing for no reason
   for (const slug of ['cron', 'regex', 'timestamp', 'json', 'base-convert']) {
-    assert.notEqual(TOOLS.find((t) => t.slug === slug).sensitive, true, `${slug} should allow URL state`);
+    assert.notEqual(tool(slug).sensitive, true, `${slug} should allow URL state`);
   }
 });
 
 test('layout derivation matches the designer variant split', () => {
-  assert.equal(layoutOf(TOOLS.find((t) => t.slug === 'base64')), 'split');
-  assert.equal(layoutOf(TOOLS.find((t) => t.slug === 'password')), 'output');
-  assert.equal(layoutOf(TOOLS.find((t) => t.slug === 'uuid')), 'output');
-  assert.equal(layoutOf(TOOLS.find((t) => t.slug === 'regex')), 'workbench');
-  assert.equal(layoutOf(TOOLS.find((t) => t.slug === 'diff')), 'workbench');
+  assert.equal(layoutOf(tool('base64')), 'split');
+  assert.equal(layoutOf(tool('password')), 'output');
+  assert.equal(layoutOf(tool('uuid')), 'output');
+  assert.equal(layoutOf(tool('regex')), 'workbench');
+  assert.equal(layoutOf(tool('diff')), 'workbench');
 });
 
 test('no tool throws on empty input', async () => {
   for (const t of TOOLS) {
-    const values = {};
+    const values: Record<string, string | number | boolean> = {};
     for (const f of t.inputs) values[f.id] = f.default ?? (f.type === 'checkbox' ? false : '');
-    await IMPLS[t.slug].run(values); // must not throw
+    await IMPLS[t.slug]!.run(values); // must not throw
   }
 });
 
@@ -515,4 +528,79 @@ test('qr svg is well-formed and scales with the module count', async () => {
   assert.ok(svg.startsWith('<svg') && svg.includes('</svg>'));
   assert.match(svg, new RegExp(`viewBox="0 0 ${(q.size + 8) * 8} ${(q.size + 8) * 8}"`));
   assert.ok((svg.match(/M\d/g) ?? []).length > 50);
+});
+
+// ── palette / navigation (designer review round 2) ────────
+import { searchTools, hrefFor } from '../src/lib/palette.ts';
+
+const INDEX = TOOLS.map((t) => ({ slug: t.slug, name: t.name, blurb: t.blurb, aliases: t.aliases }));
+
+test('searchTools ranks exact alias hits above substring hits', () => {
+  const hits = searchTools(INDEX, 'md5');
+  assert.equal(hits[0].t.slug, 'hash');
+});
+
+test('searchTools finds tools by chinese name', () => {
+  assert.equal(searchTools(INDEX, '正则')[0].t.slug, 'regex');
+  assert.equal(searchTools(INDEX, '密码')[0].t.slug, 'password');
+});
+
+test('searchTools returns nothing for an unmatched query', () => {
+  assert.deepEqual(searchTools(INDEX, 'zzzznotatool'), []);
+});
+
+test('hrefFor maps sniffed values onto the right field id', () => {
+  assert.equal(hrefFor('jwt', 'abc.def.ghi'), '/t/jwt/#token=abc.def.ghi');
+  assert.equal(hrefFor('cron', '*/5 * * * *'), '/t/cron/#expr=*%2F5+*+*+*+*');
+  assert.equal(hrefFor('base64', 'SGVsbG8=', { dir: 'decode' }), '/t/base64/#dir=decode&text=SGVsbG8%3D');
+  assert.equal(hrefFor('uuid', ''), '/t/uuid/');
+});
+
+test('every field id used by hrefFor exists on its tool', () => {
+  const map = { jwt: 'token', cidr: 'cidr', cron: 'expr', color: 'c', timestamp: 'input', 'base-convert': 'num', hmac: 'msg' };
+  for (const [slug, fieldId] of Object.entries(map)) {
+    assert.ok(tool(slug).inputs.some((f) => f.id === fieldId), `${slug} has no field "${fieldId}"`);
+  }
+});
+
+test('sniff targets resolve to a real field on the destination tool', () => {
+  const probes = ['{"a":1}', '192.168.1.0/24', '*/15 * * * *', '#58a6ff', '1788536543', 'SGVsbG8gV29ybGQh'];
+  for (const p of probes) {
+    for (const c of sniff(p)) {
+      if (!c.value) continue;
+      const href = hrefFor(c.slug, c.value, c.params);
+      const params = new URLSearchParams(href.split('#')[1]);
+      for (const key of params.keys()) {
+        assert.ok(tool(c.slug).inputs.some((f) => f.id === key), `${c.slug}: no field "${key}" (from "${p}")`);
+      }
+    }
+  }
+});
+
+test('sensitive tools ship a public sample, never a real secret', () => {
+  // RFC 6238 vector seed "12345678901234567890"
+  assert.equal(field('totp', 'secret').sample, 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ');
+  assert.equal(field('hmac', 'msg').sample, 'what do ya want for nothing?');
+});
+
+test('the totp sample actually produces the RFC 6238 code', async () => {
+  const realNow = Date.now;
+  Date.now = () => 59_000;
+  try {
+    const res = await IMPLS.totp.run({
+      secret: String(field('totp', 'secret').sample),
+      digits: 8, period: 30, alg: 'SHA-1',
+    });
+    assert.equal(String(res.blocks?.[0]?.text).replace(/\s/g, ''), '94287082');
+  } finally {
+    Date.now = realNow;
+  }
+});
+
+test('the hmac sample reproduces the RFC 4231 digest', async () => {
+  const res = await IMPLS.hmac.run({
+    msg: String(field('hmac', 'msg').sample),
+    key: 'Jefe', alg: 'SHA-256', fmt: 'hex',
+  });
+  assert.equal(res.text, '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843');
 });

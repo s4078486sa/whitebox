@@ -50,6 +50,38 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
   border: 2px solid var(--accent); background: transparent;
 }
 .topbar-spacer { flex: 1; }
+
+.palette-trigger {
+  display: flex; align-items: center; gap: var(--space-3);
+  background: var(--bg-app); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); color: var(--text-muted);
+  font-family: inherit; font-size: var(--text-sm); cursor: pointer;
+  padding: 5px var(--space-2) 5px var(--space-3); min-width: 200px;
+}
+.palette-trigger:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.palette-trigger span { flex: 1; text-align: left; }
+@media (max-width: 640px) {
+  .palette-trigger { min-width: 0; }
+  .palette-trigger span { display: none; }
+  .palette-trigger::before { content: "搜索"; }
+}
+
+.palette-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(3, 6, 10, .6);
+  display: flex; justify-content: center; align-items: flex-start;
+  padding: 10vh var(--space-4) var(--space-4);
+}
+.palette-overlay[hidden] { display: none; }
+.palette { width: 100%; max-width: 560px; position: relative; }
+.palette-input {
+  width: 100%; font-family: var(--font-sans); font-size: var(--text-lg);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface-elevated); color: var(--text-primary);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-lg);
+}
+.palette-input:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-surface); }
+.palette .results { position: static; margin-top: var(--space-2); }
 .topbar nav { display: flex; gap: var(--space-3); font-size: var(--text-sm); }
 .topbar nav a { color: var(--text-muted); }
 .topbar nav a:hover, .topbar nav a[aria-current="page"] { color: var(--text-primary); }
@@ -137,6 +169,15 @@ main { max-width: 1180px; margin: 0 auto; padding: var(--space-6) var(--space-4)
 .card b { font-weight: 500; display: block; margin-bottom: 2px; }
 .card span { color: var(--text-muted); font-size: var(--text-sm); }
 
+.chips { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; min-height: 32px;
+  padding: 0 var(--space-3); border-radius: 16px;
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  color: var(--text-primary); font-size: var(--text-sm);
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
 /* ── tool page ──────────────────────────────────────────── */
 .tool-head { margin-bottom: var(--space-6); }
 .tool-title {
@@ -220,6 +261,40 @@ input[type="color"] { width: 100%; height: 34px; padding: 2px; background: var(-
 
 .out-block { border-top: 1px solid var(--border-subtle); }
 .out-block:first-child { border-top: 0; }
+
+/* Single-line machine-readable values get a key-value row, not a full card.
+   A 8-char CRC32 does not deserve the same 102px a 128-char SHA-512 needs. */
+.kv {
+  display: flex; align-items: center; gap: var(--space-3);
+  min-height: 36px; padding: 0 var(--space-2) 0 var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+.kv:first-child { border-top: 0; }
+.kv:hover { background: var(--bg-surface); }
+.kv-key {
+  flex: 0 0 96px; font-size: var(--text-sm); color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.kv-val {
+  flex: 1; min-width: 0;
+  font-family: var(--font-mono); font-size: var(--text-mono-base);
+  font-variant-numeric: tabular-nums; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.kv-val.flash { animation: flash .28s ease-out; }
+.kv-meta { flex: 0 0 auto; font-size: var(--text-xs); color: var(--text-muted); }
+.kv .btn { flex: 0 0 auto; }
+@media (max-width: 640px) {
+  .kv { flex-wrap: wrap; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3); }
+  .kv-key { flex: 1 1 auto; }
+  .kv-val { flex: 1 1 100%; order: 3; }
+  .kv-meta { display: none; }
+}
+
+.out-empty {
+  padding: var(--space-4) var(--space-3); color: var(--text-muted);
+  font-size: var(--text-sm); text-align: center;
+}
 .out-text {
   margin: 0; padding: var(--space-3);
   font-family: var(--font-mono); font-size: var(--text-mono-base);
@@ -280,4 +355,50 @@ footer {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* ── mobile ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  main { padding: var(--space-4) var(--space-3) var(--space-6); }
+  .hero { padding: var(--space-6) 0 var(--space-4); }
+
+  /* A 260px input plus a 300px software keyboard pushes every result
+     off-screen, which kills the live-recompute premise on phones. */
+  textarea { min-height: 116px; }
+
+  /* Options stacked one-per-row cost 140px before any output appears.
+     Two per row keeps the result within reach of the first screen. */
+  .controls { grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+  .controls .field.inline { grid-column: 1 / -1; }
+  .field > label { font-size: var(--text-xs); }
+  .tool-head { margin-bottom: var(--space-4); }
+
+  /* WCAG 2.5.8: 24.2px was technically passing and practically un-tappable. */
+  .panel-head .btn, .kv .btn {
+    min-height: 32px; padding: var(--space-1) var(--space-3);
+  }
+  .iconbtn { min-width: 36px; height: 36px; }
+
+  /* With the keyboard open there is ~368px of usable height, so the output
+     still starts below the fold. Pin a one-line peek of the current result to
+     the bottom of the viewport while typing, and let it jump to the full
+     output. Without this, "type and watch it compute" is false on phones. */
+  .peek {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    display: flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-surface-elevated);
+    border-top: 1px solid var(--border-strong);
+    box-shadow: 0 -4px 16px rgba(0,0,0,.3);
+  }
+  .peek[hidden] { display: none; }
+  .peek-val {
+    flex: 1; min-width: 0; font-family: var(--font-mono);
+    font-size: var(--text-mono-base); color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .peek .btn { min-height: 32px; }
+}
+@media (min-width: 641px) {
+  .peek { display: none; }
 }

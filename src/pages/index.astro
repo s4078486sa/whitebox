@@ -26,6 +26,11 @@ import { CATEGORIES } from '../lib/types';
     </div>
   </div>
 
+  <section class="cat" id="recent-wrap" hidden>
+    <h2>最近使用</h2>
+    <div class="chips" id="recent"></div>
+  </section>
+
   {CATEGORIES.map((c) => (
     <section class="cat">
       <h2>{c.label}</h2>
@@ -42,10 +47,28 @@ import { CATEGORIES } from '../lib/types';
 
   <script>
     import { sniff } from '../lib/sniff';
+    import { getRecent, searchTools, hrefFor } from '../lib/palette';
 
     const tools = (window as any).__WB_TOOLS as {
       slug: string; name: string; blurb: string; aliases: string[];
     }[];
+
+    // Recent tools: a returning user's fastest path, zero server involvement.
+    const recent = getRecent()
+      .map((slug) => tools.find((t) => t.slug === slug))
+      .filter(Boolean) as typeof tools;
+    if (recent.length) {
+      const wrap = document.getElementById('recent-wrap')!;
+      const host = document.getElementById('recent')!;
+      for (const t of recent) {
+        const a = document.createElement('a');
+        a.className = 'chip';
+        a.href = `/t/${t.slug}/`;
+        a.textContent = t.name;
+        host.appendChild(a);
+      }
+      wrap.hidden = false;
+    }
     const q = document.getElementById('q') as HTMLInputElement;
     const box = document.getElementById('results') as HTMLDivElement;
     let cursor = -1;
@@ -72,34 +95,13 @@ import { CATEGORIES } from '../lib/types';
           const a = document.createElement('a');
           a.className = 'result';
           a.setAttribute('role', 'option');
-          const params = new URLSearchParams(c.params ?? {});
-          const primary = c.value ? 'text' : '';
-          if (c.value) {
-            // field id differs per tool; resolve the first textarea/text field
-            const map: Record<string, string> = {
-              jwt: 'token', cidr: 'cidr', cron: 'expr', color: 'c',
-              timestamp: 'input', 'base-convert': 'num',
-            };
-            params.set(map[c.slug] ?? 'text', c.value);
-          }
-          a.href = `/t/${c.slug}/#${params.toString()}`;
+          a.href = hrefFor(c.slug, c.value, c.params);
           a.innerHTML = `<span class="result-tag">${tool?.name ?? c.slug}</span><span class="result-blurb">${c.label.replace(/</g, '&lt;')}</span>`;
           box.appendChild(a);
         }
       }
 
-      const needle = s.toLowerCase();
-      const hits = tools
-        .map((t) => {
-          const hay = [t.name, t.blurb, ...t.aliases].join(' ').toLowerCase();
-          if (t.aliases.some((a) => a === needle)) return { t, score: 3 };
-          if (t.name.toLowerCase().includes(needle)) return { t, score: 2 };
-          if (hay.includes(needle)) return { t, score: 1 };
-          return null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => b!.score - a!.score)
-        .slice(0, 8);
+      const hits = searchTools(tools, s);
 
       if (!hits.length && !cands.length) {
         const empty = document.createElement('div');
@@ -118,8 +120,8 @@ import { CATEGORIES } from '../lib/types';
         const a = document.createElement('a');
         a.className = 'result';
         a.setAttribute('role', 'option');
-        a.href = `/t/${h!.t.slug}/`;
-        a.innerHTML = `<span class="result-name">${h!.t.name}</span><span class="result-blurb">${h!.t.blurb}</span>`;
+        a.href = `/t/${h.t.slug}/`;
+        a.innerHTML = `<span class="result-name">${h.t.name}</span><span class="result-blurb">${h.t.blurb}</span>`;
         box.appendChild(a);
       }
     }
