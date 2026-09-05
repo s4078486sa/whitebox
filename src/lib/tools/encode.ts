@@ -376,8 +376,12 @@ export const jwt: [ToolMeta, ToolImpl] = [
         label: 'JWT',
         mono: true,
         placeholder: 'eyJhbGciOi...',
+        // A real, decodable token (HS256, exp in 2100 so it never reads as
+        // expired). It must actually parse: an elided "eyJhbG...Q3xA" string
+        // makes the 填入示例 button insert something the tool rejects, and the
+        // page then shows nothing at all.
         sample:
-          'eyJhbG...Q3xA',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IldoaXRlIEthbmciLCJyb2xlIjoiYWdlbnQiLCJpYXQiOjE3ODg1MzY1NDMsImV4cCI6NDEwMjQ0NDgwMH0.3QN2rHqZ8kPvXwT5mL9cYdKfBnGjWpVuEsAoI1zR7XY',
       },
     ],
   },

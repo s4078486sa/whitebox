@@ -277,7 +277,11 @@ textarea, input[type="text"], input[type="number"], select {
   padding: var(--space-2); font-family: var(--font-sans); font-size: var(--text-base);
 }
 textarea.mono, input.mono, .mono { font-family: var(--font-mono); font-size: var(--text-mono-base); line-height: var(--line-height-mono); }
-textarea { resize: vertical; min-height: 260px; display: block; }
+/* 260px was chosen to make the two columns look even, but the columns are
+   already `align-items: start` — nothing needs the filler. On /t/case and
+   /t/jwt it left ~300px of dead black under a one-line input. 132px is about
+   5 rows: enough to work in, and it grows on drag or via the autogrow below. */
+textarea { resize: vertical; min-height: 132px; display: block; }
 textarea:focus, input:focus, select:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-surface); }
 select { cursor: pointer; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }

@@ -720,7 +720,7 @@ test('password reports entropy as a metric, not a warning', async () => {
 test('jwt always warns that the signature was not verified', async () => {
   const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjo0MTAyNDQ0ODAwfQ.x';
   const res = await run(jwt, { token });
-  assert.match(String(res.warning), /未对 Signature|未.*验签|签名/);
+  assert.match(String(res.warning), /不校验签名/);
 });
 
 test('keypair and hash keep their genuine hazard warnings', async () => {
@@ -804,4 +804,35 @@ test('RSA-4096 PEM stays wrapped at 64 columns', async () => {
   assert.ok(body.length > 1, 'PEM body must be wrapped, not one long line');
   assert.ok(body.every((l) => l.length <= 64),
     'PEM lines must not exceed 64 columns');
+});
+
+// ── samples must actually work (round 4) ──────────────────
+test('every sample is real input, not an elided placeholder', () => {
+  for (const t of TOOLS) {
+    for (const f of t.inputs) {
+      if (!f.sample) continue;
+      assert.ok(!/\.\.\.|…/.test(f.sample),
+        `${t.slug}.${f.id} sample contains an ellipsis — it is a placeholder, not usable input: ${f.sample}`);
+    }
+  }
+});
+
+test('every sample produces real output when run', async () => {
+  for (const t of TOOLS) {
+    const sampleFields = t.inputs.filter((f) => f.sample);
+    if (!sampleFields.length) continue;
+    const values = {};
+    for (const f of t.inputs) values[f.id] = f.default ?? (f.type === 'checkbox' ? false : '');
+    for (const f of sampleFields) values[f.id] = f.sample;
+    const res = await IMPLS[t.slug].run(values);
+    const produced = (res.blocks ?? []).some((b) => b.text || b.html) || !!res.text;
+    assert.ok(produced, `${t.slug}: its own sample produced no output`);
+  }
+});
+
+test('the jwt sample decodes and carries the unverified warning', async () => {
+  const res = await run(jwt, { token: field('jwt', 'token').sample });
+  assert.match(blockLabelled(res, 'Header'), /"alg"/);
+  assert.match(blockLabelled(res, 'Payload'), /"sub"/);
+  assert.match(String(res.warning), /不校验签名/);
 });
