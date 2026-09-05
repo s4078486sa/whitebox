@@ -160,5 +160,18 @@ import { CATEGORIES } from '../lib/types';
     document.addEventListener('click', (e) => {
       if (!box.contains(e.target as Node) && e.target !== q) box.textContent = '';
     });
+
+    // Hide the topbar search trigger while the hero search is on screen —
+    // two visible search boxes with near-identical placeholders is two
+    // answers to one question. IntersectionObserver rather than a scroll
+    // handler so it costs nothing while scrolling.
+    const heroSearch = document.querySelector('.search-wrap');
+    if (heroSearch && 'IntersectionObserver' in window) {
+      document.body.classList.add('hero-visible');
+      new IntersectionObserver(
+        ([entry]) => document.body.classList.toggle('hero-visible', entry.isIntersecting),
+        { rootMargin: '-56px 0px 0px 0px' },
+      ).observe(heroSearch);
+    }
   </script>
 </Base>

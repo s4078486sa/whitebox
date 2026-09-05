@@ -37,6 +37,11 @@
 
   --radius-sm: 4px;
   --radius-md: 6px;
+
+  /* One page width for every top-level container (main, footer, tool header).
+     Previously each wrote its own literal; main moved to 1360px and the footer
+     stayed at 1180px, so the footer rule sat 82px inside everything above it. */
+  --page-w: 1360px;
   --radius-lg: 8px;
 
   --shadow-pop: 0 8px 28px rgb(0 0 0 / 45%);

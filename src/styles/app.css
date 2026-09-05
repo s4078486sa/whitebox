@@ -97,7 +97,7 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 
 /* 1180px left ~330px of dead space either side at 1844px wide while SHA-512
    wrapped inside a 240px column. Content this dense earns the extra width. */
-main { max-width: 1360px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+main { max-width: var(--page-w); margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
 
 /* ── search / palette ───────────────────────────────────── */
 .search-wrap { position: relative; max-width: 640px; margin: 0 auto; }
@@ -155,12 +155,23 @@ main { max-width: 1360px; margin: 0 auto; padding: var(--space-6) var(--space-4)
 
 .cat { margin-top: var(--space-8); }
 .cat h2 {
-  font-size: var(--text-sm); text-transform: uppercase; letter-spacing: .06em;
-  color: var(--text-muted); margin: 0 0 var(--space-3); font-weight: 600;
+  /* Section headings were smaller and dimmer than the card titles they group,
+   which inverts the hierarchy: the page's actual organising structure read
+   as quieter than its contents. Lift to primary text and give the group
+   more air above than below, so the gap reads as "new group" rather than
+   "more of the same". */
+  font-size: var(--text-base); text-transform: none; letter-spacing: 0;
+  color: var(--text-primary); margin: 0 0 var(--space-3); font-weight: 650;
 }
+.cat + .cat > h2 { margin-top: var(--space-6); }
 .grid {
   display: grid; gap: var(--space-2);
-  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  /* 232px settled on 5 columns at 1360px, and with 6/7/7/5 tools per section
+     that leaves three orphan rows — one lone card beside four empty slots.
+     300px yields 4 columns, so the tails are 2/3/3/1 instead of 1/2/2/0
+     empty. auto-fill (not auto-fit) keeps card width stable rather than
+     stretching a single orphan across the row. */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 .card {
   display: block; padding: var(--space-3);
@@ -392,7 +403,10 @@ mark { background: var(--accent-surface); color: var(--accent); border-radius: 2
 .swatch { display: inline-block; width: 100%; height: 56px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); }
 
 footer {
-  max-width: 1180px; margin: 0 auto; padding: var(--space-6) var(--space-4);
+  /* Same container as main. These were separate literals and drifted apart:
+     main 1360px vs footer 1180px put the footer rule 82px inside every other
+     element on the page. Use the token so they cannot diverge again. */
+  max-width: var(--page-w); margin: 0 auto; padding: var(--space-6) var(--space-4);
   border-top: 1px solid var(--border-subtle); color: var(--text-muted);
   font-size: var(--text-sm); display: flex; gap: var(--space-4); flex-wrap: wrap;
 }
@@ -465,3 +479,17 @@ label.label-with-actions .btn {
   font-size: var(--text-xs);
 }
 label.label-with-actions .btn + .btn { margin-left: var(--space-1); }
+
+/* Two search entry points were visible at once on the homepage: the topbar
+   trigger (Ctrl K) and the hero field (/), ~200px apart, with near-identical
+   placeholders. Two answers to the same question teaches two mental models.
+   The hero field is the primary one, so hide the topbar trigger until the
+   hero has scrolled out of view. Every other page keeps it visible, because
+   there is no hero field there. Purely a CSS state driven by a class the
+   homepage sets — no layout shift, since the spacer keeps its slot. */
+body.hero-visible .palette-trigger {
+  opacity: 0; pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .palette-trigger { transition: opacity .18s ease; }
+}

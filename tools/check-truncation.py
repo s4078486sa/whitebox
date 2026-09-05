@@ -22,6 +22,11 @@ CSS = Path(__file__).resolve().parent.parent / "src/styles/app.css"
 # Selectors whose content is data the user came here to read and copy.
 PAYLOAD_SELECTORS = (".kv-val", ".out-text", ".result", "code")
 
+# Top-level containers must share one width. They were three separate literals
+# and drifted: main went to 1360px while footer stayed at 1180px, leaving the
+# footer rule inset 82px from every other element. Only a screenshot showed it.
+CONTAINER_SELECTORS = ("main", "footer")
+
 
 def rules(text: str):
     """Yield (selector_list, body) for each rule, comments stripped."""
@@ -50,13 +55,28 @@ def main() -> int:
                 f"instead."
             )
 
+    # Container widths must come from the shared token, not a literal.
+    for sel, body in rules(css):
+        name = sel.strip()
+        if name not in CONTAINER_SELECTORS:
+            continue
+        m = re.search(r"max-width:\s*([^;]+);", body)
+        if m and "--page-w" not in m.group(1):
+            problems.append(
+                f"{name}: max-width is the literal `{m.group(1).strip()}` "
+                f"instead of var(--page-w).\n"
+                f"      Separate literals drift; that is how the footer ended "
+                f"up 82px narrower than main."
+            )
+
     if problems:
         print("payload text would be visually truncated:\n")
         for p in problems:
             print("  " + p)
         return 1
 
-    print(f"no clipped payload selectors ({', '.join(PAYLOAD_SELECTORS)})")
+    print(f"no clipped payload selectors ({', '.join(PAYLOAD_SELECTORS)}); "
+          f"containers share var(--page-w)")
     return 0
 
 
