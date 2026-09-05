@@ -105,7 +105,7 @@ function renderBlocks(host: HTMLElement, res: RunResult, meta: ToolMeta) {
   // roomier card so it still reads as the page's primary answer.
   const rowMode = blocks.filter(isRow).length >= 3;
 
-  for (const b of blocks) {
+  for (const [i, b] of blocks.entries()) {
     if (rowMode && isRow(b)) {
       const row = document.createElement('div');
       row.className = 'kv';
@@ -154,15 +154,21 @@ function renderBlocks(host: HTMLElement, res: RunResult, meta: ToolMeta) {
     const isLongText = !b.html && !!b.text && (b.text.length > 400 || b.text.split('\n').length > 8);
     const isTable = !!b.html && !isGraphic && /<table\b/i.test(b.html);
     const isLong = isLongText || isTable;
-    // ...but "long and not first" is not the same as "secondary". An RSA-4096
-    // private key is 3271 chars and the second block on /t/keypair, so the
-    // length rule crushed 1064px of PEM into a 180px scrolling slit — the
-    // single artifact the user came to collect, treated as a footnote.
-    // A block the tool offers as a file is a deliverable, never an accessory.
+    // ...but "long" is not the same as "secondary", and this rule has now been
+    // wrong twice. It capped an RSA-4096 private key (3271 chars, the whole
+    // point of /t/keypair) and the CIDR readout (205px of answer squeezed into
+    // 180px) — both were the FIRST block, i.e. the answer itself.
+    //
+    // A block is reference material only if some *other* block is the answer.
+    // The answer is the first one; anything a tool offers as a file is a
+    // deliverable too. Everything else may be capped.
     const isDeliverable = !!b.filename;
+    const isAnswer = i === 0;
     if (b.secret) wrap.classList.add('secret');
     if (isGraphic) wrap.classList.add('graphic');
-    if (blocks.length > 1 && isLong && !isDeliverable) wrap.classList.add('accessory');
+    if (blocks.length > 1 && isLong && !isAnswer && !isDeliverable) {
+      wrap.classList.add('accessory');
+    }
     if (blocks.length > 2) wrap.classList.add('compact');
 
     const head = document.createElement('div');

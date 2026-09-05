@@ -48,7 +48,10 @@ const controls = meta.inputs.filter((f) => f.type !== 'textarea');
           {/* Options first: you decide direction/mode before typing, and the
               switch never hides under a 260px textarea. */}
           {controls.length > 0 && <div class="controls" style="margin-bottom:var(--space-3)">{controls.map((f) => <Field field={f} />)}</div>}
-          <Field field={areas[0]!} />
+          {/* hideLabel: the panel header above already shows this field's
+              label. Rendering it twice ("输入（每行一个）" appeared at both
+              y=155 and y=199 on /t/case) wastes a row to say nothing. */}
+          <Field field={areas[0]!} hideLabel />
         </div>
       </div>
     ) : (

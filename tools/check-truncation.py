@@ -20,7 +20,13 @@ from pathlib import Path
 CSS = Path(__file__).resolve().parent.parent / "src/styles/app.css"
 
 # Selectors whose content is data the user came here to read and copy.
-PAYLOAD_SELECTORS = (".kv-val", ".out-text", ".result", "code")
+PAYLOAD_SELECTORS = (".kv-val", ".out-text", ".result", "code",
+                     # Keys are labels, not payload — but a clipped label still
+                     # misreports the row. "SCREAMING_SNAKE_CASE" rendered as
+                     # "SCREAMING_S…" on a tool whose whole job is naming
+                     # conventions. The gate missed it because it only watched
+                     # values.
+                     ".kv-key")
 
 # Top-level containers must share one width. They were three separate literals
 # and drifted: main went to 1360px while footer stayed at 1180px, leaving the

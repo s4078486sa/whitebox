@@ -320,8 +320,14 @@ input[type="color"] { width: 100%; height: 34px; padding: 2px; background: var(-
 .kv:first-child { border-top: 0; }
 .kv:hover { background: var(--bg-surface); }
 .kv-key {
-  flex: 0 0 96px; font-size: var(--text-sm); color: var(--text-muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* 96px truncated "SCREAMING_SNAKE_CASE" to "SCREAMING_S…" on /t/case — a
+     naming-convention tool that cannot show the name of a convention. The key
+     is a label, so let it size to its content with a sane ceiling instead of
+     clipping. My truncation gate only guards payload selectors; keys are
+     labels, but a clipped label is still a lie about what the row contains. */
+  flex: 0 0 auto; min-width: 96px; max-width: 200px;
+  font-size: var(--text-sm); color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 .kv-val {
   flex: 1; min-width: 0;

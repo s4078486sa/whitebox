@@ -1,8 +1,12 @@
 ---
 import type { Field } from '../lib/types';
-interface Props { field: Field }
+interface Props { field: Field; hideLabel?: boolean }
 const f = Astro.props.field;
 const id = `f-${f.id}`;
+// The split layout prints this field's label in the panel header, so the
+// visible <label> here would be a duplicate. Keep it in the accessibility
+// tree via aria-label — hiding a label must not unname the control.
+const hideLabel = Astro.props.hideLabel === true;
 ---
 {f.type === 'checkbox' ? (
   <div class="field inline">
@@ -11,13 +15,15 @@ const id = `f-${f.id}`;
   </div>
 ) : (
   <div class="field">
-    <label for={id}>
-      {f.label}
-      {f.type === 'range' && <span class="counts"> — <span id={`v-${f.id}`}>{f.default}</span></span>}
-    </label>
+    {!hideLabel && (
+      <label for={id}>
+        {f.label}
+        {f.type === 'range' && <span class="counts"> — <span id={`v-${f.id}`}>{f.default}</span></span>}
+      </label>
+    )}
 
     {f.type === 'textarea' && (
-      <textarea id={id} class={f.mono ? 'mono' : ''} placeholder={f.placeholder} spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off">{f.default}</textarea>
+      <textarea id={id} class={f.mono ? 'mono' : ''} aria-label={hideLabel ? f.label : undefined} placeholder={f.placeholder} spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off">{f.default}</textarea>
     )}
     {f.type === 'text' && (
       <input type="text" id={id} class={f.mono ? 'mono' : ''} placeholder={f.placeholder} value={f.default} spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" />
