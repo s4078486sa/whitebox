@@ -19,8 +19,12 @@ jobs:
     runs-on: utlas-medium
     # actions/checkout 等 JS action 由 runner 用 node 执行，镜像必须自带 node，
     # 否则 checkout 阶段就 `exec: "node": executable file not found` + exit 127。
+    #
+    # 必须是 22+，不是 20：`node --test --experimental-strip-types` 在 20 上
+    # 直接 `bad option` 退出码 9（测试一条都不跑），而 astro 7 / wrangler 4 /
+    # undici 8 的 engines 字段也都要求 >=22 —— npm 只是 warn，不会拦。
     container:
-      image: node:20-alpine
+      image: node:22-alpine
 
     steps:
       - name: 安装系统依赖

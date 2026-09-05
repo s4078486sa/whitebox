@@ -148,7 +148,12 @@ function renderBlocks(host: HTMLElement, res: RunResult, meta: ToolMeta) {
     //               (JSON formatter, diff) is never capped.
     //   compact   — several blocks on screen: drop the 60px per-block floor.
     const isGraphic = !!b.html && /<(svg|img|canvas)\b/i.test(b.html);
-    const isLong = !b.html && !!b.text && (b.text.length > 400 || b.text.split('\n').length > 8);
+    // Reference material is long text OR a secondary data table (Unicode's
+    // codepoint list measured 488px). Graphics are excluded: they are already
+    // capped at 240px and scrolling an image is worse than seeing it.
+    const isLongText = !b.html && !!b.text && (b.text.length > 400 || b.text.split('\n').length > 8);
+    const isTable = !!b.html && !isGraphic && /<table\b/i.test(b.html);
+    const isLong = isLongText || isTable;
     if (isGraphic) wrap.classList.add('graphic');
     if (blocks.length > 1 && isLong) wrap.classList.add('accessory');
     if (blocks.length > 2) wrap.classList.add('compact');

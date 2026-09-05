@@ -81,10 +81,13 @@ export const password: [ToolMeta, ToolImpl] = [
         blocks: [
           {
             text: list.join('\n'),
-            meta: `字符集 ${a.length} · 每条约 ${bits} bit 熵`,
+            // Entropy is a measurement, so it belongs beside the result like
+            // any other metric — not in the warning line, which is reserved
+            // for things that can bite (irreversible loss, broken algorithms).
+            // The privacy claim is already the pill's job on every page.
+            meta: `${a.length} 字符集 · ${bits} bit 熵 · ${strength}`,
           },
         ],
-        warning: `熵 ≈ ${bits} bit（${strength}）。这些密码只存在于本页面，刷新即消失，不会写入 URL 或本地存储。`,
       };
     },
   },

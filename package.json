@@ -8,7 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "test": "node --test --experimental-strip-types test/*.test.ts",
-    "check": "python3 tools/check-contrast.py && tsc --noEmit",
+    "check": "python3 tools/check-contrast.py && python3 tools/check-truncation.py && tsc --noEmit",
     "deploy": "wrangler deploy"
   },
   "dependencies": {
@@ -21,5 +21,8 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "wrangler": "^4.129.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
