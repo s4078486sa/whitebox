@@ -478,7 +478,11 @@ test('layout derivation matches the designer variant split', () => {
   assert.equal(layoutOf(tool('base64')), 'split');
   assert.equal(layoutOf(tool('password')), 'output');
   assert.equal(layoutOf(tool('uuid')), 'output');
-  assert.equal(layoutOf(tool('regex')), 'workbench');
+  // regex was workbench until a per-page review measured the cost: stacked,
+  // the match list sat ~450px under the expression field, so every keystroke
+  // in the most interactive tool on the site cost a scroll. Now split.
+  assert.equal(layoutOf(tool('regex')), 'split');
+  // diff stays workbench — two textareas cannot share one column.
   assert.equal(layoutOf(tool('diff')), 'workbench');
 });
 
@@ -603,4 +607,64 @@ test('the hmac sample reproduces the RFC 4231 digest', async () => {
     key: 'Jefe', alg: 'SHA-256', fmt: 'hex',
   });
   assert.equal(res.text, '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843');
+});
+
+// ── csv: an unterminated quote must be an error, not silent corruption ──
+test('csv rejects an unterminated quote instead of silently truncating', async () => {
+  // The old parser swallowed this: the field absorbed the rest of the file and
+  // the tool emitted plausible-looking JSON. Wrong answers that inspect as
+  // right are the worst failure mode a converter can have.
+  await assert.rejects(
+    () => run(csvjson, { text: 'a,b\n"unclosed', dir: 'to-json', delim: ',', types: true }),
+    /引号没有闭合/,
+  );
+  await assert.rejects(
+    () => run(csvjson, { text: 'name\n"a""b', dir: 'to-json', delim: ',', types: true }),
+    /第 2 行/,
+  );
+});
+
+test('csv still accepts properly escaped and multiline quoted fields', async () => {
+  const res = await run(csvjson, { text: 'a,b\n1,"x""y"', dir: 'to-json', delim: ',', types: true });
+  assert.match(text(res), /"x\\"y"/);
+  const multi = await run(csvjson, { text: 'a,b\n"multi\nline",2', dir: 'to-json', delim: ',', types: true });
+  assert.match(text(multi), /multi\\nline/);
+});
+
+test('csv keeps the last row when the file has no trailing newline', async () => {
+  // Regression guard: the unterminated-quote fix initially dropped the flush
+  // that emits a final line lacking "\n", silently losing one record.
+  const res = await run(csvjson, { text: 'a,b\n1,2\n3,4', dir: 'to-json', delim: ',', types: true });
+  const parsed = JSON.parse(text(res));
+  assert.equal(parsed.length, 2, 'both data rows must survive');
+  assert.deepEqual(parsed[1], { a: 3, b: 4 });
+});
+
+// ── layout choices are load-bearing; pin them so they can't drift back ──
+test('interactive tools use the side-by-side layout', () => {
+  // Both of these shipped stacked, which put the result ~450px below the
+  // control you were editing. Measured on the live site before the fix.
+  for (const slug of ['hmac', 'regex']) {
+    const meta = TOOLS.find((t) => t.slug === slug);
+    assert.equal(layoutOf(meta), 'split', `${slug} must stay side-by-side`);
+  }
+  // diff genuinely needs the workbench: two textareas can't share one column.
+  assert.equal(layoutOf(TOOLS.find((t) => t.slug === 'diff')), 'workbench');
+});
+
+test('jwt always warns that it does not verify the signature', async () => {
+  // A decoded payload reads exactly the same whether or not anyone checked
+  // the signature — including for "alg":"none". The caveat has to be loud.
+  const tok = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig';
+  const res = await run(jwt, { token: tok });
+  assert.match(res.warning ?? '', /不校验签名/);
+});
+
+test('jwt keeps the expiry warning and the unsigned caveat together', async () => {
+  // exp in the past: both facts matter, so neither may replace the other.
+  const expired = 'eyJhbGciOiJIUzI1NiJ9.' +
+    Buffer.from(JSON.stringify({ exp: 1000000000 })).toString('base64url') + '.sig';
+  const res = await run(jwt, { token: expired });
+  assert.match(res.warning ?? '', /过期/);
+  assert.match(res.warning ?? '', /不校验签名/);
 });

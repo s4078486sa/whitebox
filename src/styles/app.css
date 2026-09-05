@@ -224,6 +224,31 @@ main { max-width: 1180px; margin: 0 auto; padding: var(--space-6) var(--space-4)
   border-radius: var(--radius-md); overflow: hidden; min-width: 0;
 }
 .panel.out { background: var(--bg-surface-muted); }
+
+/* Output must not grow without bound: /t/qr reached 2479px, /t/case 1014px.
+   Panes stay viewport-height and scroll internally — the standard defence
+   against a page that grows downward as results arrive. */
+@media (min-width: 901px) {
+  .panel.out { max-height: calc(100vh - 200px); overflow-y: auto; }
+}
+
+/* Accessory long-text blocks (QR's SVG source, Unicode's codepoint table)
+   are reference material, not the page's answer: cap and scroll them.
+   Applied by renderBlocks() only to *secondary* blocks, so a tool whose one
+   output is legitimately long (JSON formatter, diff) is never truncated. */
+.out-block.accessory .out-text,
+.out-block.accessory > div:not(.panel-head) {
+  max-height: 180px; overflow-y: auto;
+}
+/* With several blocks on screen, a 60px floor per block is pure padding. */
+.out-block.compact .out-text {
+  min-height: 0; padding: var(--space-2) var(--space-3);
+}
+/* Graphic hero blocks (QR canvas, colour swatch) centre and stay bounded. */
+.out-block.graphic > div:not(.panel-head) {
+  display: flex; justify-content: center; padding: var(--space-3);
+}
+.out-block.graphic svg, .out-block.graphic img { max-width: 240px; height: auto; }
 .panel-head {
   display: flex; align-items: center; gap: var(--space-2);
   padding: var(--space-2) var(--space-3);

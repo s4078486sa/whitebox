@@ -134,6 +134,25 @@ function renderBlocks(host: HTMLElement, res: RunResult, meta: ToolMeta) {
     const wrap = document.createElement('div');
     wrap.className = 'out-block';
 
+    // Classify the block so the stylesheet can bound it. Without this, output
+    // grows without limit: /t/qr measured 2477px (its SVG source alone 2121px)
+    // and /t/case 1012px against a 910px viewport. Kinds are derived from the
+    // block's own shape rather than hardcoded per tool:
+    //
+    //   graphic   — an actual image (QR svg, colour swatch): centre + cap.
+    //               ⚠️ `b.html` alone is NOT the test. regex highlights and
+    //               diff hunks are also HTML, and centring *text* in a flex
+    //               row is wrong — they were briefly rendered that way.
+    //   accessory — long text that is reference material, not the answer.
+    //               Only ever a *secondary* block, so a single long output
+    //               (JSON formatter, diff) is never capped.
+    //   compact   — several blocks on screen: drop the 60px per-block floor.
+    const isGraphic = !!b.html && /<(svg|img|canvas)\b/i.test(b.html);
+    const isLong = !b.html && !!b.text && (b.text.length > 400 || b.text.split('\n').length > 8);
+    if (isGraphic) wrap.classList.add('graphic');
+    if (blocks.length > 1 && isLong) wrap.classList.add('accessory');
+    if (blocks.length > 2) wrap.classList.add('compact');
+
     const head = document.createElement('div');
     head.className = 'panel-head';
     const label = document.createElement('span');

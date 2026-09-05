@@ -234,7 +234,9 @@ export const hmac: [ToolMeta, ToolImpl] = [
     category: 'generate',
     aliases: ['hmac', 'mac', 'sign', 'webhook', '签名', '密钥'],
     sensitive: true,
-    workbench: true,
+    // No workbench: one textarea and one short result is exactly the split
+    // shape. Stacking pushed the output panel below the fold, so the page
+    // said "type on the left" while the result sat 400px further down.
     inputs: [
       { id: 'msg', type: 'textarea', label: '消息', mono: true, sample: 'what do ya want for nothing?' },
       { id: 'key', type: 'text', label: '密钥', mono: true, placeholder: '共享密钥', default: 'secret' },

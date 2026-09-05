@@ -414,9 +414,14 @@ export const jwt: [ToolMeta, ToolImpl] = [
         const n = payload[k];
         if (typeof n === 'number') claims.push(`${k} (${label})  ${fmt(n)} UTC  ·  ${rel(n)}`);
       }
-      let warning: string | undefined;
+      // The unsigned-decode caveat belongs in the warning line, not only in a
+      // block's meta text. Someone skimming a decoded payload can otherwise
+      // walk away believing the token was checked — and "alg":"none" tokens
+      // decode just as cleanly as real ones.
+      const unsigned = '本工具只解码展示，**不校验签名**（验签需要密钥）。不要凭这里的内容做鉴权判断。';
+      let warning: string | undefined = unsigned;
       if (typeof payload.exp === 'number' && payload.exp < now) {
-        warning = `这个 token 已经过期（exp 在 ${rel(payload.exp)}）。`;
+        warning = `这个 token 已经过期（exp 在 ${rel(payload.exp)}）。${unsigned}`;
       }
 
       return {

@@ -476,6 +476,7 @@ function parseCSV(text: string, delim: string): string[][] {
   let row: string[] = [];
   let cell = '';
   let inQ = false;
+  let quoteStart = -1; // byte offset of the opening quote, for the error
   for (let i = 0; i < text.length; i++) {
     const c = text[i]!;
     if (inQ) {
@@ -483,11 +484,26 @@ function parseCSV(text: string, delim: string): string[][] {
         if (text[i + 1] === '"') { cell += '"'; i++; }
         else inQ = false;
       } else cell += c;
-    } else if (c === '"') inQ = true;
+    } else if (c === '"') { inQ = true; quoteStart = i; }
     else if (c === delim) { row.push(cell); cell = ''; }
     else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
     else if (c !== '\r') cell += c;
   }
+  // An unterminated quote is a parse error, not a shrug. Swallowing it
+  // produces output that looks entirely plausible — the truncated field just
+  // silently absorbs the rest of the file — which is the worst possible
+  // failure for a data-conversion tool: wrong answers that inspect as right.
+  if (inQ) {
+    const line = text.slice(0, quoteStart).split('\n').length;
+    const col = quoteStart - text.lastIndexOf('\n', quoteStart - 1);
+    throw new ToolError(
+      `第 ${line} 行第 ${col} 列的引号没有闭合 —— 后面的内容都被并进了这一个字段。` +
+        `字段内的引号要写成两个（""）。`,
+      'text',
+    );
+  }
+  // Flush the trailing row: a file whose last line has no newline still has
+  // that line. (Dropping this silently loses the final record.)
   if (cell || row.length) { row.push(cell); rows.push(row); }
   return rows.filter((r) => r.length > 1 || r[0] !== '');
 }

@@ -16,7 +16,9 @@ export const regex: [ToolMeta, ToolImpl] = [
     blurb: '实时高亮匹配，展开捕获组',
     category: 'inspect',
     aliases: ['regex', 'regexp', 're', '正则', 'match', 'pattern', 'grep'],
-    workbench: true,
+    // No workbench: regex is the most interactive tool here — you edit the
+    // pattern and read the highlight in the same glance. Stacked, the matches
+    // sat ~450px below the expression and every keystroke cost a scroll.
     inputs: [
       {
         id: 'pattern',
