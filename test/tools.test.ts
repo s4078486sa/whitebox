@@ -668,3 +668,44 @@ test('jwt keeps the expiry warning and the unsigned caveat together', async () =
   assert.match(res.warning ?? '', /过期/);
   assert.match(res.warning ?? '', /不校验签名/);
 });
+
+// ── activeWhen: options that do nothing must say so ──
+test('mode-dependent options declare when they are meaningless', () => {
+  const hex = TOOLS.find((t) => t.slug === 'hex');
+  const sep = hex.inputs.find((f) => f.id === 'sep');
+  const upper = hex.inputs.find((f) => f.id === 'upper');
+  // Separator and case describe how hex is written, so they are inert while
+  // hex is being read.
+  assert.equal(sep.activeWhen({ dir: 'encode' }), true);
+  assert.equal(sep.activeWhen({ dir: 'decode' }), false);
+  assert.equal(upper.activeWhen({ dir: 'decode' }), false);
+
+  const json = TOOLS.find((t) => t.slug === 'json');
+  const indent = json.inputs.find((f) => f.id === 'indent');
+  assert.equal(indent.activeWhen({ mode: 'pretty' }), true);
+  for (const mode of ['min', 'escape', 'unescape']) {
+    assert.equal(indent.activeWhen({ mode }), false, `indent is inert in ${mode}`);
+  }
+});
+
+test('every activeWhen tolerates an empty value bag', () => {
+  // run() calls these before the first render, when values may be missing.
+  for (const t of TOOLS) {
+    for (const f of t.inputs) {
+      if (f.activeWhen) assert.doesNotThrow(() => f.activeWhen({}), `${t.slug}.${f.id}`);
+    }
+  }
+});
+
+test('direction selects all read source → target', () => {
+  // These used to mix "编码 →", "← 解码" and "文本 → Hex" across pages, so the
+  // same control meant three different things depending where you were.
+  for (const slug of ['base64', 'url', 'html-entities', 'hex', 'unicode', 'csv-json']) {
+    const dir = TOOLS.find((t) => t.slug === slug).inputs.find((f) => f.id === 'dir');
+    if (!dir) continue;
+    for (const o of dir.options) {
+      assert.match(o.label, /→/, `${slug}: "${o.label}" should name source → target`);
+      assert.doesNotMatch(o.label, /←/, `${slug}: "${o.label}" still uses a back-arrow`);
+    }
+  }
+});

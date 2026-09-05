@@ -30,6 +30,15 @@ export interface Field {
   mono?: boolean;
   /** Sample content used for the live-demo empty state. */
   sample?: string;
+  /**
+   * Dim and disable this control unless the predicate holds.
+   *
+   * For options that only mean something in one mode — hex's separator when
+   * decoding, json's indent when minifying. Leaving them lit implies they do
+   * something, and the user is entitled to believe the interface. Declared
+   * here rather than as per-tool DOM code so the rule stays with the field.
+   */
+  activeWhen?: (v: Values) => boolean;
 }
 
 export type Values = Record<string, string | number | boolean>;

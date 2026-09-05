@@ -47,8 +47,8 @@ export const base64: [ToolMeta, ToolImpl] = [
         label: '方向',
         default: 'encode',
         options: [
-          { value: 'encode', label: '编码 →' },
-          { value: 'decode', label: '← 解码' },
+          { value: 'encode', label: '文本 → Base64' },
+          { value: 'decode', label: 'Base64 → 文本' },
         ],
       },
       {
@@ -108,8 +108,8 @@ export const urlcodec: [ToolMeta, ToolImpl] = [
         label: '方向',
         default: 'encode',
         options: [
-          { value: 'encode', label: '编码 →' },
-          { value: 'decode', label: '← 解码' },
+          { value: 'encode', label: '原文 → 编码' },
+          { value: 'decode', label: '编码 → 原文' },
         ],
       },
       {
@@ -173,8 +173,8 @@ export const htmlent: [ToolMeta, ToolImpl] = [
         label: '方向',
         default: 'encode',
         options: [
-          { value: 'encode', label: '转义 →' },
-          { value: 'decode', label: '← 反转义' },
+          { value: 'encode', label: '文本 → 实体' },
+          { value: 'decode', label: '实体 → 文本' },
         ],
       },
       {
@@ -230,13 +230,22 @@ export const hexcodec: [ToolMeta, ToolImpl] = [
         type: 'select',
         label: '分隔',
         default: 'space',
+        // Both of these describe how hex is *written*, so they mean nothing
+        // when hex is the input being read.
+        activeWhen: (v) => v.dir !== 'decode',
         options: [
           { value: 'space', label: '空格' },
           { value: 'none', label: '无' },
           { value: 'colon', label: '冒号' },
         ],
       },
-      { id: 'upper', type: 'checkbox', label: '大写', default: false },
+      {
+        id: 'upper',
+        type: 'checkbox',
+        label: '大写',
+        default: false,
+        activeWhen: (v) => v.dir !== 'decode',
+      },
     ],
   },
   {
@@ -368,7 +377,7 @@ export const jwt: [ToolMeta, ToolImpl] = [
         mono: true,
         placeholder: 'eyJhbGciOi...',
         sample:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IldoaXRlIEthbmciLCJpYXQiOjE3ODg1MzY1NDMsImV4cCI6MTc4ODU0MDE0M30.7Xk3TjWq7Uq6Yj0kZ4E1F5Z9v8k2mYc0nQq1sWpQ3xA',
+          'eyJhbG...Q3xA',
       },
     ],
   },

@@ -67,6 +67,8 @@ export const json: [ToolMeta, ToolImpl] = [
         type: 'select',
         label: '缩进',
         default: '2',
+        // Only 美化 lays anything out; the other three modes ignore indent.
+        activeWhen: (v) => v.mode === 'pretty',
         options: [
           { value: '2', label: '2 空格' },
           { value: '4', label: '4 空格' },

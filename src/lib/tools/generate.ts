@@ -43,8 +43,9 @@ export const password: [ToolMeta, ToolImpl] = [
     sensitive: true,
     action: '重新生成',
     inputs: [
+      // Order follows the decision order: shape the password first, then say
+      // how many you want. "生成数量" sat second and interrupted that.
       { id: 'len', type: 'range', label: '长度', default: 20, min: 8, max: 128, step: 1 },
-      { id: 'count', type: 'number', label: '生成数量', default: 5, min: 1, max: 50 },
       { id: 'lower', type: 'checkbox', label: '小写字母', default: true },
       { id: 'upper', type: 'checkbox', label: '大写字母', default: true },
       { id: 'digit', type: 'checkbox', label: '数字', default: true },
@@ -55,6 +56,7 @@ export const password: [ToolMeta, ToolImpl] = [
         label: '排除易混字符 (0O1lI)',
         default: true,
       },
+      { id: 'count', type: 'number', label: '生成数量', default: 5, min: 1, max: 50 },
     ],
   },
   {
@@ -172,7 +174,7 @@ export const hash: [ToolMeta, ToolImpl] = [
       {
         id: 'case',
         type: 'select',
-        label: '输出',
+        label: '输出格式',
         default: 'lower',
         options: [
           { value: 'lower', label: '小写 hex' },
@@ -255,7 +257,7 @@ export const hmac: [ToolMeta, ToolImpl] = [
       {
         id: 'fmt',
         type: 'select',
-        label: '输出',
+        label: '输出格式',
         default: 'hex',
         options: [
           { value: 'hex', label: 'hex' },

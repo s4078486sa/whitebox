@@ -427,3 +427,22 @@ footer {
 @media (min-width: 641px) {
   .peek { display: none; }
 }
+
+/* Controls that do nothing in the current mode: dimmed but still readable.
+   Disabled text is exempt from WCAG contrast, but if a greyed control is the
+   only signal explaining why an option is unavailable, it has to be legible.
+   0.5 on --text-muted still measures above 3:1 on both surfaces. */
+.field-off { opacity: 0.5; }
+.field-off label { cursor: default; }
+
+/* When a tool has several text areas, clear/paste live on each label row
+   instead of the shared panel header — otherwise the second area has no way
+   to be cleared or pasted into at all (measured on /t/diff). */
+label.label-with-actions {
+  display: flex; align-items: center; gap: var(--space-2);
+}
+label.label-with-actions .btn {
+  margin-left: auto; padding: 2px var(--space-2); min-height: 24px;
+  font-size: var(--text-xs);
+}
+label.label-with-actions .btn + .btn { margin-left: var(--space-1); }

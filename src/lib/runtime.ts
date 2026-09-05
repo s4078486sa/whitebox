@@ -220,10 +220,38 @@ export function mountTool(meta: ToolMeta) {
     const v = readValues(meta);
     syncUrl(meta, v);
 
-    const primary = meta.inputs.find((f) => f.type === 'textarea');
-    if (counts && primary) {
-      const t = String(v[primary.id] ?? '');
-      counts.textContent = t ? `${Array.from(t).length} 字符 · ${new TextEncoder().encode(t).length} 字节 · ${t.split('\n').length} 行` : '';
+    // Character counts. With two text areas (diff) a single figure taken from
+    // the first one is worse than none: it silently describes half the input.
+    // Label each instead.
+    const areas = meta.inputs.filter((f) => f.type === 'textarea');
+    if (counts && areas.length) {
+      const stat = (id: string) => {
+        const t = String(v[id] ?? '');
+        return t
+          ? `${Array.from(t).length} 字符 · ${new TextEncoder().encode(t).length} 字节 · ${t.split('\n').length} 行`
+          : '';
+      };
+      counts.textContent =
+        areas.length === 1
+          ? stat(areas[0]!.id)
+          : areas
+              .map((f) => {
+                const s = stat(f.id);
+                return s ? `${f.label}: ${s}` : '';
+              })
+              .filter(Boolean)
+              .join('　');
+    }
+
+    // Dim controls that do nothing in the current mode. A lit control that
+    // has no effect is a small lie the interface tells every time.
+    for (const f of meta.inputs) {
+      if (!f.activeWhen) continue;
+      const el = document.getElementById(`f-${f.id}`) as HTMLInputElement | null;
+      if (!el) continue;
+      const on = f.activeWhen(v);
+      el.disabled = !on;
+      el.closest('.field')?.classList.toggle('field-off', !on);
     }
 
     try {
@@ -304,15 +332,34 @@ export function mountTool(meta: ToolMeta) {
   }
 
   // Input affordances: clear always, paste where the Clipboard API allows it.
-  const primaryField = meta.inputs.find((f) => f.type === 'textarea') ?? meta.inputs.find((f) => f.type === 'text');
-  if (primaryField) {
-    const el = document.getElementById(`f-${primaryField.id}`) as HTMLTextAreaElement | HTMLInputElement | null;
-    const head = el?.closest('.panel')?.querySelector('.panel-head');
-    if (el && head) {
+  //
+  // These attach per *textarea*, not once per page. Binding them to a single
+  // "primary" field left /t/diff's second pane unreachable: 清空 emptied A and
+  // left B's 102 characters stranded with no way to clear or paste them, and
+  // the header's character count silently described A alone. Any tool with
+  // two text areas has the same shape, so fix the rule, not the page.
+  const areaFields = meta.inputs.filter((f) => f.type === 'textarea');
+  const affordanceFields = areaFields.length
+    ? areaFields
+    : meta.inputs.filter((f) => f.type === 'text').slice(0, 1);
+  const multi = affordanceFields.length > 1;
+
+  for (const field of affordanceFields) {
+    const el = document.getElementById(`f-${field.id}`) as HTMLTextAreaElement | HTMLInputElement | null;
+    if (!el) continue;
+    // With several areas the buttons belong on each field's own label row;
+    // with one they sit in the panel header where there is more room.
+    const host = multi
+      ? el.closest('.field')?.querySelector('label')
+      : el.closest('.panel')?.querySelector('.panel-head');
+    const head = host as HTMLElement | null | undefined;
+    if (head) {
+      if (multi) head.classList.add('label-with-actions');
       const clear = document.createElement('button');
       clear.className = 'btn';
       clear.type = 'button';
       clear.textContent = '清空';
+      clear.title = multi ? `清空「${field.label}」` : '清空输入';
       clear.hidden = !el.value;
       clear.addEventListener('click', () => {
         el.value = '';
@@ -327,6 +374,7 @@ export function mountTool(meta: ToolMeta) {
       paste.className = 'btn';
       paste.type = 'button';
       paste.textContent = '粘贴';
+      paste.title = multi ? `粘贴到「${field.label}」` : '从剪贴板粘贴';
       paste.addEventListener('click', async () => {
         try {
           const t = await navigator.clipboard.readText();
@@ -344,7 +392,7 @@ export function mountTool(meta: ToolMeta) {
       // Secret-bearing tools get an explicit, harmless sample instead of a
       // blank pane that reads as a crash. RFC vectors carry no privacy risk.
       const sampleField = meta.inputs.find((f) => f.sample);
-      if (meta.sensitive && sampleField) {
+      if (!multi && meta.sensitive && sampleField) {
         const demo = document.createElement('button');
         demo.className = 'btn';
         demo.type = 'button';
@@ -416,8 +464,9 @@ export function mountTool(meta: ToolMeta) {
   // On touch this would pop the keyboard and hide the whole page.
   // Note: check dataset.fromUrl, not location.hash — the first run() already
   // wrote sample state into the hash, so location.hash is never empty here.
-  if (matchMedia('(pointer: fine)').matches && primaryField && !document.body.dataset.fromUrl) {
-    const el = document.getElementById(`f-${primaryField.id}`) as HTMLTextAreaElement | null;
+  const focusField = affordanceFields[0];
+  if (matchMedia('(pointer: fine)').matches && focusField && !document.body.dataset.fromUrl) {
+    const el = document.getElementById(`f-${focusField.id}`) as HTMLTextAreaElement | null;
     if (el) {
       el.focus({ preventScroll: true });
       if (el.dataset.sample === '1') el.select();
