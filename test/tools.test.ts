@@ -772,3 +772,36 @@ test('password asks for the count after the character classes', () => {
   const ids = tool('password').inputs.map((f) => f.id);
   assert.ok(ids.indexOf('count') > ids.indexOf('sym'), 'count should follow the charset choices');
 });
+
+// ── keypair: the deliverable must not be treated as a footnote ──
+test('keypair fingerprint is copyable, not an ellipsis-terminated stub', async () => {
+  const res = await IMPLS.keypair.run({ alg: 'Ed25519' });
+  const fp = res.blocks!.find((b) => b.label === '公钥指纹')!;
+  assert.ok(!fp.text!.includes('…'),
+    'a fingerprint containing an ellipsis is broken the moment it is pasted');
+  // SHA-256 hex is 64 chars after the "SHA-256:" prefix.
+  assert.match(fp.text!, /^SHA-256:[0-9a-f]{64}$/,
+    'fingerprint should be the full digest');
+});
+
+test('keypair marks the private key as the secret one', async () => {
+  const res = await IMPLS.keypair.run({ alg: 'Ed25519' });
+  const priv = res.blocks!.find((b) => b.label!.includes('私钥'))!;
+  const pub = res.blocks!.find((b) => b.label!.includes('公钥 '))!;
+  assert.equal(priv.secret, true,
+    'the private key must be visually distinguishable from the public one');
+  assert.ok(!pub.secret, 'the public key is not a secret');
+  // Both are offered as files, which is what keeps them out of the
+  // "accessory" bucket that caps height at 180px.
+  assert.ok(priv.filename && pub.filename,
+    'PEM blocks are deliverables and must declare a filename');
+});
+
+test('RSA-4096 PEM stays wrapped at 64 columns', async () => {
+  const res = await IMPLS.keypair.run({ alg: 'RSA-2048' });
+  const priv = res.blocks!.find((b) => b.label!.includes('私钥'))!;
+  const body = priv.text!.split('\n').filter((l) => !l.startsWith('-----'));
+  assert.ok(body.length > 1, 'PEM body must be wrapped, not one long line');
+  assert.ok(body.every((l) => l.length <= 64),
+    'PEM lines must not exceed 64 columns');
+});

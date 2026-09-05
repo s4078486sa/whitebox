@@ -154,8 +154,15 @@ function renderBlocks(host: HTMLElement, res: RunResult, meta: ToolMeta) {
     const isLongText = !b.html && !!b.text && (b.text.length > 400 || b.text.split('\n').length > 8);
     const isTable = !!b.html && !isGraphic && /<table\b/i.test(b.html);
     const isLong = isLongText || isTable;
+    // ...but "long and not first" is not the same as "secondary". An RSA-4096
+    // private key is 3271 chars and the second block on /t/keypair, so the
+    // length rule crushed 1064px of PEM into a 180px scrolling slit — the
+    // single artifact the user came to collect, treated as a footnote.
+    // A block the tool offers as a file is a deliverable, never an accessory.
+    const isDeliverable = !!b.filename;
+    if (b.secret) wrap.classList.add('secret');
     if (isGraphic) wrap.classList.add('graphic');
-    if (blocks.length > 1 && isLong) wrap.classList.add('accessory');
+    if (blocks.length > 1 && isLong && !isDeliverable) wrap.classList.add('accessory');
     if (blocks.length > 2) wrap.classList.add('compact');
 
     const head = document.createElement('div');

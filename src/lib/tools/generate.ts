@@ -355,12 +355,16 @@ export const keypair: [ToolMeta, ToolImpl] = [
         crypto.subtle.exportKey('spki', kp.publicKey),
         crypto.subtle.exportKey('pkcs8', kp.privateKey),
       ]);
-      const fp = toHex(new Uint8Array(await crypto.subtle.digest('SHA-256', pub))).slice(0, 32);
+      const fpFull = toHex(new Uint8Array(await crypto.subtle.digest('SHA-256', pub)));
       return {
         blocks: [
           { label: '公钥 (SPKI / PEM)', text: pem('PUBLIC KEY', pub), meta: `${a} · 生成耗时 ${ms} ms`, filename: 'public.pem' },
-          { label: '私钥 (PKCS#8 / PEM)', text: pem('PRIVATE KEY', priv), meta: '仅存在于本页内存', filename: 'private.pem' },
-          { label: '公钥指纹', text: `SHA-256:${fp}…`, meta: '前 128 bit，用于快速比对' },
+          { label: '私钥 (PKCS#8 / PEM)', text: pem('PRIVATE KEY', priv), meta: '仅存在于本页内存', filename: 'private.pem', secret: true },
+          // The trailing "…" used to be part of the copied string, so pasting
+          // the fingerprint anywhere produced a value with an ellipsis in it.
+          // Show the full digest: there is no width problem to solve here, and
+          // a fingerprint you cannot paste is not a fingerprint.
+          { label: '公钥指纹', text: `SHA-256:${fpFull}`, meta: 'SHA-256(公钥 SPKI)，用于快速比对' },
         ],
         warning: '私钥只在这个页面的内存里，刷新即永久丢失。请立刻复制或下载保存，本站不做任何存储或上传。',
       };

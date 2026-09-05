@@ -493,3 +493,16 @@ body.hero-visible .palette-trigger {
 @media (prefers-reduced-motion: no-preference) {
   .palette-trigger { transition: opacity .18s ease; }
 }
+
+/* The dangerous output looks dangerous. A private key had the same border,
+   label size and buttons as the public key while the text above it said
+   "refresh and it is gone forever" — the design contradicted the warning.
+   A rule down the left edge, not a red fill: this is a caution, not an error,
+   and tinting the background would hurt the monospace legibility of the very
+   thing the user needs to read and copy. */
+.out-block.secret .out-text {
+  border-left: 3px solid var(--danger);
+  padding-left: calc(var(--space-3) - 3px);
+}
+/* No badge: the block is already titled 私钥 (PKCS#8 / PEM), so a "私钥" chip
+   beside it would just repeat the word. The rule carries the signal. */

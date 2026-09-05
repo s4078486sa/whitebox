@@ -57,6 +57,14 @@ export interface OutputBlock {
   filename?: string;
   /** Suppress the copy button (for rendered-only blocks like QR canvases). */
   nocopy?: boolean;
+  /**
+   * This block is the dangerous one: a private key, a recovery secret.
+   * Gets a danger-tinted rule so the risk is visible, not just described in
+   * prose. On /t/keypair the private key had the exact same weight as the
+   * public key while the text above it said "this is irreversible" — the
+   * design contradicted the warning.
+   */
+  secret?: boolean;
 }
 
 export interface RunResult {
