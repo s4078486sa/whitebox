@@ -163,10 +163,13 @@ function renderBlocks(host: HTMLElement, res: RunResult, meta: ToolMeta) {
     // The answer is the first one; anything a tool offers as a file is a
     // deliverable too. Everything else may be capped.
     const isDeliverable = !!b.filename;
-    const isAnswer = i === 0;
+    // An explicit declaration always wins over the length heuristic: the QR
+    // tool's SVG dump is 1863px and carries a filename, so every structural
+    // guess said "product" while it is plainly reference material.
+    const isAnswer = i === 0 && !b.reference;
     if (b.secret) wrap.classList.add('secret');
     if (isGraphic) wrap.classList.add('graphic');
-    if (blocks.length > 1 && isLong && !isAnswer && !isDeliverable) {
+    if (b.reference || (blocks.length > 1 && isLong && !isAnswer && !isDeliverable)) {
       wrap.classList.add('accessory');
     }
     if (blocks.length > 2) wrap.classList.add('compact');
@@ -197,23 +200,28 @@ function renderBlocks(host: HTMLElement, res: RunResult, meta: ToolMeta) {
 
     if (!b.nocopy && b.text) {
       head.appendChild(copyButton(() => b.text));
+    }
 
-      if (b.filename) {
-        const dl = document.createElement('button');
-        dl.className = 'btn';
-        dl.type = 'button';
-        dl.textContent = '下载';
-        dl.title = b.filename;
-        dl.addEventListener('click', () => {
-          const url = URL.createObjectURL(new Blob([b.text], { type: 'text/plain;charset=utf-8' }));
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = b.filename!;
-          a.click();
-          URL.revokeObjectURL(url);
-        });
-        head.appendChild(dl);
-      }
+    // Download is independent of copy. It used to be nested inside the copy
+    // branch, so a block with `nocopy` and no text — exactly the QR image —
+    // could never offer one, and the only way to save a QR code was the
+    // download button on the SVG source block 490px further down.
+    const payload = b.downloadText ?? b.text;
+    if (b.filename && payload) {
+      const dl = document.createElement('button');
+      dl.className = 'btn';
+      dl.type = 'button';
+      dl.textContent = '下载';
+      dl.title = b.filename;
+      dl.addEventListener('click', () => {
+        const url = URL.createObjectURL(new Blob([payload], { type: 'image/svg+xml;charset=utf-8' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = b.filename!;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+      head.appendChild(dl);
     }
 
     wrap.append(head, body);

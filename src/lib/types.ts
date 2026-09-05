@@ -55,6 +55,17 @@ export interface OutputBlock {
   meta?: string;
   /** Suggested download filename; enables the download button. */
   filename?: string;
+  /**
+   * Payload for the download when it differs from `text` — e.g. the QR block
+   * renders an image but downloads the SVG markup behind it.
+   */
+  downloadText?: string;
+  /**
+   * Explicitly reference material: shown, capped, and never the answer.
+   * Length alone is a bad proxy for importance — it mistook a 3271-char
+   * private key for a footnote, and a 1863px SVG dump for the product.
+   */
+  reference?: boolean;
   /** Suppress the copy button (for rendered-only blocks like QR canvases). */
   nocopy?: boolean;
   /**

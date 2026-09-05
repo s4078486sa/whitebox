@@ -520,13 +520,21 @@ export const qr: [ToolMeta, ToolImpl] = [
             label: '二维码',
             text: '',
             nocopy: true,
+            // The download belongs on the code itself: that is what the user
+            // came for. It previously lived only on the source block below,
+            // 490px down the page, so "save the QR" meant scrolling past
+            // 1863px of XML to find it.
+            filename: 'qrcode.svg',
+            downloadText: svg,
             html: `<div style="background:#fff;padding:12px;border-radius:6px;display:inline-block;max-width:100%">${svg}</div>`,
           },
           {
             label: 'SVG 源码',
             text: svg,
             meta: `版本 ${q.version} · ${q.size}×${q.size} · 纠错 ${ec} · 容量已用 ${pct}%`,
-            filename: 'qrcode.svg',
+            // Reference material, not the product. Without this the 1863px of
+            // XML outweighed the 332px image it describes by 5:1.
+            reference: true,
           },
         ],
       };

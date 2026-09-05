@@ -836,3 +836,17 @@ test('the jwt sample decodes and carries the unverified warning', async () => {
   assert.match(blockLabelled(res, 'Payload'), /"sub"/);
   assert.match(String(res.warning), /不校验签名/);
 });
+
+// ── qr: the code is the product, its markup is reference ──
+test('qr offers the download on the code itself, not only on the source dump', async () => {
+  const res = await IMPLS.qr.run({ text: 'https://example.com', ec: 'M' });
+  const [code, source] = res.blocks!;
+  assert.equal(code.label, '二维码');
+  assert.ok(code.filename, 'the image block must offer a download');
+  assert.ok(code.downloadText && code.downloadText.startsWith('<svg'),
+    'downloading the image should yield the SVG markup');
+  assert.equal(source.reference, true,
+    'the SVG dump is reference material, not the product');
+  assert.ok(!source.filename,
+    'the source block should not be the only place to save the code');
+});
