@@ -134,7 +134,9 @@ textarea —— 0 个是「参数在上、输出在下」，1 个是左右分栏
 
 ## 协作
 
-Issue 提在 https://git.utlas.de/EyebrowsWhite/whitebox
+Issue 提在 https://github.com/s4078486sa/whitebox（公开镜像）。
+内部开发与 CI 在自建 forge 上，对外不可达 —— 所以站点上只放 GitHub 链接：
+一个别人打不开的「源码」链接，比没有链接更糟，它看起来像开源声明而其实不是。
 
 作者 White Kang。设计意见来自 designer（配色、布局变体规则、
 以及「首页别做成万能输入框」这个否决 —— 它是对的）。

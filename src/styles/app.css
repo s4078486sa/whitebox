@@ -95,7 +95,9 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 }
 .iconbtn:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--bg-surface-elevated); }
 
-main { max-width: 1180px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+/* 1180px left ~330px of dead space either side at 1844px wide while SHA-512
+   wrapped inside a 240px column. Content this dense earns the extra width. */
+main { max-width: 1360px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
 
 /* ── search / palette ───────────────────────────────────── */
 .search-wrap { position: relative; max-width: 640px; margin: 0 auto; }
@@ -270,6 +272,14 @@ select { cursor: pointer; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 input[type="color"] { width: 100%; height: 34px; padding: 2px; background: var(--bg-app); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); cursor: pointer; }
 
+/* One control, two parts: the swatch rides inside the text field's box
+   instead of eating a whole form row of its own. */
+.color-combo { display: flex; gap: var(--space-2); align-items: center; }
+.color-combo input[type="text"] { flex: 1; min-width: 0; }
+.color-combo input[type="color"] {
+  flex: 0 0 34px; width: 34px; height: 34px; padding: 2px;
+}
+
 .field { margin-bottom: var(--space-3); }
 .field:last-child { margin-bottom: 0; }
 .field > label { display: block; font-size: var(--text-sm); margin-bottom: var(--space-1); color: var(--text-primary); }
@@ -290,8 +300,10 @@ input[type="color"] { width: 100%; height: 34px; padding: 2px; background: var(-
 /* Single-line machine-readable values get a key-value row, not a full card.
    A 8-char CRC32 does not deserve the same 102px a 128-char SHA-512 needs. */
 .kv {
-  display: flex; align-items: center; gap: var(--space-3);
-  min-height: 36px; padding: 0 var(--space-2) 0 var(--space-3);
+  /* align-items:flex-start, not center: once long values wrap to several
+     lines, a vertically centred key drifts away from the line it labels. */
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  min-height: 36px; padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
   border-top: 1px solid var(--border-subtle);
 }
 .kv:first-child { border-top: 0; }
@@ -304,7 +316,14 @@ input[type="color"] { width: 100%; height: 34px; padding: 2px; background: var(-
   flex: 1; min-width: 0;
   font-family: var(--font-mono); font-size: var(--text-mono-base);
   font-variant-numeric: tabular-nums; color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* Wrap, don't hide. Truncating with an ellipsis measured out at showing
+     240px of a 1039px SHA-512 — 5 of the 7 hashes on /t/hash were visually
+     cut off. The clipboard was always correct, which is exactly why no DOM
+     assertion caught it: only a screenshot shows a value the user cannot
+     read. `anywhere` breaks at the edge instead of mid-token like
+     break-all. */
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  padding: var(--space-1) 0;
 }
 .kv-val.flash { animation: flash .28s ease-out; }
 .kv-meta { flex: 0 0 auto; font-size: var(--text-xs); color: var(--text-muted); }

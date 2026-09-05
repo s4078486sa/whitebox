@@ -315,7 +315,7 @@ export const numbase: [ToolMeta, ToolImpl] = [
           { value: '8', label: '8 八进制' },
           { value: '10', label: '10 十进制' },
           { value: '16', label: '16 十六进制' },
-          { value: '36', label: '36' },
+          { value: '36', label: '36 进制' },
         ],
       },
     ],
@@ -416,9 +416,8 @@ export const color: [ToolMeta, ToolImpl] = [
     category: 'convert',
     aliases: ['color', 'colour', 'hex', 'rgb', 'hsl', 'oklch', '颜色', '对比度', 'contrast', 'wcag'],
     inputs: [
-      { id: 'c', type: 'text', label: '颜色', mono: true, default: '#58a6ff', placeholder: '#58a6ff · rgb(88,166,255)' },
-      { id: 'picker', type: 'color', label: '取色器', default: '#58a6ff' },
-      { id: 'bg', type: 'text', label: '对比背景色', mono: true, default: '#0e1217', hint: '用于计算 WCAG 对比度' },
+      { id: 'c', type: 'text-color', label: '颜色', mono: true, default: '#58a6ff', placeholder: '#58a6ff · rgb(88,166,255)' },
+      { id: 'bg', type: 'text-color', label: '对比背景色', mono: true, default: '#0e1217', hint: '用于计算 WCAG 对比度' },
     ],
   },
   {

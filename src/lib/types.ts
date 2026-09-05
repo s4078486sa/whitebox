@@ -12,7 +12,9 @@ export type FieldType =
   | 'select'
   | 'checkbox'
   | 'range'
-  | 'color';
+  | 'color'
+  /** Text field with an inline native colour picker fused to its right. */
+  | 'text-color';
 
 export interface Field {
   id: string;

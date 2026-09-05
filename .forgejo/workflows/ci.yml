@@ -1,0 +1,93 @@
+name: ci
+
+# 每次推 main 都跑完整门禁，通过后自动部署到 Cloudflare Workers。
+# PR 只跑门禁不部署。
+#
+# 这些检查此前都是我手动跑的，于是「忘了跑」和「跑了但没看输出」都发生过。
+# 放进 CI 的意义不是省事，是让「没跑」变成不可能。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # 实例上唯一的全局 runner 是 horse-runner01，标签 utlas-medium。
+    # 写成 docker / ubuntu-latest 都不会被认领，job 会一直 waiting 且**无报错**。
+    runs-on: utlas-medium
+    # actions/checkout 等 JS action 由 runner 用 node 执行，镜像必须自带 node，
+    # 否则 checkout 阶段就 `exec: "node": executable file not found` + exit 127。
+    container:
+      image: node:20-alpine
+
+    steps:
+      - name: 安装系统依赖
+        # bash 是给 tools/*.sh 用的：alpine 的 /bin/sh 是 busybox ash，
+        # 脚本的 shebang 写的是 bash，别指望两者永远兼容。
+        run: apk add --no-cache python3 git curl bash
+
+      - uses: actions/checkout@v4
+
+      - name: 安装 npm 依赖
+        run: npm ci --no-audit --no-fund
+
+      - name: 类型检查
+        # tsc 曾因测试文件一直失败，而我以为门禁在守着 —— 门禁本身会坏且不报。
+        run: npx tsc --noEmit
+
+      - name: 单元测试
+        # 全部对照 RFC / NIST 公开向量，不是自证。
+        run: npm test
+
+      - name: 配色对比度门禁
+        # 36 组前景/背景，任一不足 WCAG 阈值即非零退出。
+        run: python3 tools/check-contrast.py
+
+      - name: 截断门禁
+        # 用户要读的值不能被裁掉。ellipsis 曾把 1039px 的 SHA-512 只显示
+        # 240px，而剪贴板、textContent、title 全部正确 —— DOM 断言全绿，
+        # 只有截图能看出来。所以这条查的是 CSS 结构而不是运行时。
+        run: python3 tools/check-truncation.py
+
+      - name: 构建
+        run: npx astro build
+
+      - name: 产物完整性
+        # 25 个工具页 + 首页 + about，少一个就是路由或注册表出了问题。
+        # 构建成功不等于产物齐全。
+        run: |
+          set -eu
+          n=$(find dist -name index.html | wc -l)
+          echo "生成页面数: $n"
+          [ "$n" -ge 27 ] || { echo "页面数不足 27，注册表或路由有问题"; exit 1; }
+          test -s dist/_headers || { echo "_headers 丢失 —— 隐私头会全部失效"; exit 1; }
+          grep -q 'no-transform' dist/_headers || { echo "_headers 里没有 no-transform"; exit 1; }
+          grep -q 'wasm-unsafe-eval' dist/_headers || { echo "CSP 缺 wasm-unsafe-eval，WASM 哈希会静默失效"; exit 1; }
+
+      - name: 部署到 Cloudflare Workers
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -eu
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "未配置 CLOUDFLARE_API_TOKEN，跳过部署（产物已构建并通过全部门禁）"
+            exit 0
+          fi
+          npx wrangler deploy
+
+      - name: 线上验收
+        # 部署成功 ≠ 站点行为正确。这一步带浏览器 UA 抓线上页面，
+        # 断言隐私声明仍然成立 —— Cloudflare 会在边缘注入分析 beacon，
+        # 且**只对浏览器 UA 注入**，默认 UA 的 curl 查不出来。
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -eu
+          [ -n "${CLOUDFLARE_API_TOKEN:-}" ] || { echo "未部署，跳过验收"; exit 0; }
+          sleep 15
+          bash tools/verify-privacy.sh https://whitebox.judy2006969.me

@@ -29,6 +29,12 @@ const id = `f-${f.id}`;
       <input type="range" id={id} value={f.default} min={f.min} max={f.max} step={f.step} />
     )}
     {f.type === 'color' && <input type="color" id={id} value={f.default} />}
+    {f.type === 'text-color' && (
+      <span class="color-combo">
+        <input type="text" id={id} class={f.mono ? 'mono' : ''} placeholder={f.placeholder} value={f.default} spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" />
+        <input type="color" id={`${id}-picker`} value={f.default} aria-label={`${f.label} — 取色器`} />
+      </span>
+    )}
     {f.type === 'select' && (
       <select id={id}>
         {f.options?.map((o) => <option value={o.value} selected={o.value === f.default}>{o.label}</option>)}

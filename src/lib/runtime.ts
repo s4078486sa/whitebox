@@ -290,6 +290,28 @@ export function mountTool(meta: ToolMeta) {
       schedule();
     });
     el.addEventListener('change', schedule);
+
+    // text-color: the swatch and the text field are one control in two parts,
+    // so each has to follow the other. The picker only speaks #rrggbb, so it
+    // silently ignores rgb()/named input rather than clobbering it.
+    if (f.type === 'text-color') {
+      const picker = document.getElementById(`f-${f.id}-picker`) as HTMLInputElement | null;
+      const text = el as HTMLInputElement;
+      if (picker) {
+        picker.addEventListener('input', () => {
+          text.value = picker.value;
+          schedule();
+        });
+        text.addEventListener('input', () => {
+          const hex = text.value.trim();
+          if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) {
+            picker.value = hex.length === 4
+              ? '#' + hex.slice(1).split('').map((ch) => ch + ch).join('')
+              : hex;
+          }
+        });
+      }
+    }
   }
 
   $('#action')?.addEventListener('click', () => run(true));
