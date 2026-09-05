@@ -109,21 +109,33 @@ export const regex: [ToolMeta, ToolImpl] = [
         },
       ];
 
-      if (matches.length) {
-        blocks.push({
-          label: '匹配明细',
-          text: '',
-          nocopy: true,
-          html: `<table class="data"><thead><tr><th>#</th><th>位置</th><th>完整匹配</th>${groupHead}</tr></thead><tbody>${rows}</tbody></table>`,
-        });
-      }
-
+      // Order: highlight, then the replacement, then the match table.
+      //
+      // The replacement is what you asked for the moment you fill in 替换为,
+      // so it must not sit below a table that can run to dozens of rows.
+      // But the highlight stays first: it is the live feedback you read while
+      // editing the pattern, and promoting a block that only exists when
+      // `replace` is non-empty would make the whole panel jump as you type
+      // the first character into that field.
       const repl = S(v, 'replace');
       if (repl) {
         blocks.push({
           label: '替换结果',
           text: text.replace(new RegExp(pattern, flags), repl),
           nocopy: false,
+        } as never);
+      }
+
+      if (matches.length) {
+        blocks.push({
+          label: '匹配明细',
+          text: '',
+          nocopy: true,
+          // Reference detail: one row per match, which is unbounded. Declared
+          // rather than inferred, so a 40-match table cannot outweigh the
+          // replacement above it.
+          reference: true,
+          html: `<table class="data"><thead><tr><th>#</th><th>位置</th><th>完整匹配</th>${groupHead}</tr></thead><tbody>${rows}</tbody></table>`,
         } as never);
       }
 

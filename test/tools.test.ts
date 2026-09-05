@@ -850,3 +850,36 @@ test('qr offers the download on the code itself, not only on the source dump', a
   assert.ok(!source.filename,
     'the source block should not be the only place to save the code');
 });
+
+// ── regex: the replacement outranks the match table ──
+test('regex puts 替换结果 above the unbounded match table', () => {
+  const impl = TOOLS.find((t) => t.slug === 'regex');
+  assert.ok(impl, 'regex tool must exist');
+});
+
+test('regex block order: highlight, replacement, then detail', async () => {
+  const res = await IMPLS.regex.run({
+    pattern: '(\\w+)@(\\w+\\.\\w+)',
+    flags: 'g',
+    text: 'a@b.com c@d.org',
+    replace: '$1 [at] $2',
+  });
+  const labels = res.blocks!.map((b) => b.label);
+  const iRepl = labels.findIndex((l) => l!.includes('替换结果'));
+  const iTable = labels.findIndex((l) => l!.includes('匹配明细'));
+  assert.ok(iRepl > -1, 'a non-empty replace must produce a result block');
+  assert.ok(iTable > -1, 'matches must still be listed');
+  assert.ok(iRepl < iTable,
+    'the replacement is the answer; the match table is reference detail');
+  const table = res.blocks![iTable];
+  assert.equal((table as { reference?: boolean }).reference, true,
+    'the match table is unbounded and must be declared as reference');
+});
+
+test('regex without a replacement emits no replacement block', async () => {
+  const res = await IMPLS.regex.run({
+    pattern: '\\d+', flags: 'g', text: 'a1 b22', replace: '',
+  });
+  assert.ok(!res.blocks!.some((b) => b.label!.includes('替换结果')),
+    'an empty replace field must not fabricate an empty result block');
+});

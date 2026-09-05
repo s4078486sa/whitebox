@@ -516,3 +516,16 @@ body.hero-visible .palette-trigger {
 }
 /* No badge: the block is already titled 私钥 (PKCS#8 / PEM), so a "私钥" chip
    beside it would just repeat the word. The rule carries the signal. */
+
+/* The "button fence": on /t/case eight 复制 buttons stacked at an identical x,
+   fully opaque — a column of grey blocks louder than the values beside them.
+   Dim them until the row is hovered or the button is focused.
+   NOT click-anywhere-to-copy, which designer suggested: these values are
+   selectable text, and a row-wide click handler steals the drag you need to
+   select part of a string. Keyboard and touch users never see a hover, so the
+   button must stay visible (not display:none) and fully opaque on focus. */
+@media (hover: hover) and (pointer: fine) {
+  .kv .btn { opacity: .45; transition: opacity .12s ease; }
+  .kv:hover .btn,
+  .kv .btn:focus-visible { opacity: 1; }
+}
