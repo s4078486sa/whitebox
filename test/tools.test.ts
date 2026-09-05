@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { base64, urlcodec, hexcodec, jwt } from '../src/lib/tools/encode.ts';
-import { uuid, hash, hmac, totp, password } from '../src/lib/tools/generate.ts';
+import { uuid, hash, hmac, totp, password, keypair } from '../src/lib/tools/generate.ts';
 import { json, configconv, timestamp, numbase, color, csvjson, cron } from '../src/lib/tools/convert.ts';
 import { regex, diff, casing, cidr, textstats } from '../src/lib/tools/inspect.ts';
 import { sniff } from '../src/lib/sniff.ts';
@@ -708,4 +708,67 @@ test('direction selects all read source → target', () => {
       assert.doesNotMatch(o.label, /←/, `${slug}: "${o.label}" still uses a back-arrow`);
     }
   }
+});
+
+// ── round 3: density rules, wording, warn placement ───────
+test('password reports entropy as a metric, not a warning', async () => {
+  const res = await run(password, { len: 20, count: 3, lower: true, upper: true, digit: true, sym: true, clear: true });
+  assert.equal(res.warning, undefined, 'entropy must not occupy the warning line');
+  assert.match(String(res.blocks?.[0]?.meta), /bit 熵/);
+});
+
+test('jwt always warns that the signature was not verified', async () => {
+  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjo0MTAyNDQ0ODAwfQ.x';
+  const res = await run(jwt, { token });
+  assert.match(String(res.warning), /未对 Signature|未.*验签|签名/);
+});
+
+test('keypair and hash keep their genuine hazard warnings', async () => {
+  const k = await run(keypair, { alg: 'Ed25519' });
+  assert.match(String(k.warning), /刷新即永久丢失/);
+  const h = await run(hash, { text: 'x', case: 'lower' });
+  assert.match(String(h.warning), /MD5 和 SHA-1/);
+});
+
+test('direction selects read as a flow, never a backwards arrow', () => {
+  for (const slug of ['base64', 'url', 'html-entities', 'hex', 'unicode', 'csv-json']) {
+    const dir = tool(slug).inputs.find((f) => f.id === 'dir');
+    assert.ok(dir, `${slug} has no dir field`);
+    for (const o of dir.options ?? []) {
+      assert.ok(!o.label.startsWith('←'), `${slug}: "${o.label}" points backwards`);
+    }
+  }
+});
+
+test('no field label is the bare word 输出 (collides with the output pane)', () => {
+  for (const t of TOOLS) {
+    for (const f of t.inputs) {
+      assert.notEqual(f.label, '输出', `${t.slug}.${f.id} needs a more specific label`);
+    }
+  }
+});
+
+test('every select option carries its unit', () => {
+  const bases = field('base-convert', 'from');
+  for (const o of bases.options ?? []) {
+    if (o.value === 'auto') continue;
+    assert.match(o.label, /进制/, `base option "${o.label}" is missing its unit`);
+  }
+});
+
+test('hmac and regex use the split layout, not a stack', () => {
+  assert.equal(layoutOf(tool('hmac')), 'split');
+  assert.equal(layoutOf(tool('regex')), 'split');
+});
+
+test('colour inputs fuse the picker into the text field', () => {
+  const t = tool('color');
+  assert.equal(field('color', 'c').type, 'text-color');
+  assert.equal(field('color', 'bg').type, 'text-color');
+  assert.ok(!t.inputs.some((f) => f.id === 'picker'), 'the standalone picker row should be gone');
+});
+
+test('password asks for the count after the character classes', () => {
+  const ids = tool('password').inputs.map((f) => f.id);
+  assert.ok(ids.indexOf('count') > ids.indexOf('sym'), 'count should follow the charset choices');
 });

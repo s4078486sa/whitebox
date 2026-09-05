@@ -59,14 +59,30 @@ else
   say "CSP allows wasm (hash-wasm needs it)" "FAIL — BLAKE3/SHA3/CRC32 will break"; fail=1
 fi
 
-# 4. No external origins referenced anywhere in the HTML.
-ext=$(grep -oE 'https?://[a-zA-Z0-9.-]+' "$tmp/b" \
-      | grep -vE '(whitebox\.judy2006969\.me|git\.utlas\.de|www\.w3\.org|schema\.org)' \
+# 4. No external origins that the browser would actually FETCH.
+#
+# A plain <a href> to another site is not a request — nobody's data leaves the
+# page because a link exists. What matters is anything the browser loads on its
+# own: script/link/img/iframe/form targets. So allowlist by *purpose*, not by
+# hostname string, or this check starts flagging the source link in the footer.
+# (It did exactly that when the repo link moved from the private forge to
+# GitHub — the gate was right to fire and the assertion was too broad.)
+fetched=$(grep -oE '(src|href)="https?://[^"]+"' "$tmp/b" \
+      | grep -vE 'rel="?(noopener|noreferrer)' \
+      | grep -oE 'https?://[a-zA-Z0-9.-]+' \
+      | grep -vE '(whitebox\.judy2006969\.me|www\.w3\.org)' \
       | sort -u || true)
-if [ -z "$ext" ]; then
-  say "no third-party origins in HTML" "OK"
+# Links in the page body are fine; subresources are not. Isolate the tags that
+# cause a load.
+sub=$(grep -oE '<(script|link|img|iframe|source|form)[^>]+(src|href|action)="https?://[^"]+"' "$tmp/b" \
+      | grep -oE 'https?://[a-zA-Z0-9.-]+' \
+      | grep -vE '(whitebox\.judy2006969\.me|www\.w3\.org)' \
+      | sort -u || true)
+if [ -z "$sub" ]; then
+  say "no third-party subresources" "OK"
+  [ -n "$fetched" ] && echo "      (outbound links present, not loaded: $(echo "$fetched" | tr '\n' ' '))"
 else
-  say "no third-party origins in HTML" "FAIL"; echo "$ext" | sed 's/^/      /'; fail=1
+  say "no third-party subresources" "FAIL"; echo "$sub" | sed 's/^/      /'; fail=1
 fi
 
 # 5. Every tool page is reachable and carries the privacy pill.
