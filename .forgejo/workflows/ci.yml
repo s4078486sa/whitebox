@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    # 实例上唯一的全局 runner 是 horse-runner01，标签 utlas-medium。
+    # 实例上唯一的全局 runner 的标签。
     # 写成 docker / ubuntu-latest 都不会被认领，job 会一直 waiting 且**无报错**。
     runs-on: utlas-medium
     # actions/checkout 等 JS action 由 runner 用 node 执行，镜像必须自带 node，
@@ -44,6 +44,12 @@ jobs:
       - name: 单元测试
         # 全部对照 RFC / NIST 公开向量，不是自证。
         run: npm test
+
+      - name: 内部标识符门禁
+        # 这个仓库有公开 GitHub 镜像，产物还部署在公网。2026-09-06 复盘发现
+        # 正则工具的示例文本里写着真实内部邮箱，已被打进 _astro/*.js 匿名可读。
+        # 上面所有门禁没有一项会看这个 —— 是检查项有盲区，不是检查失败了。
+        run: bash tools/scan-private.sh
 
       - name: 配色对比度门禁
         # 36 组前景/背景，任一不足 WCAG 阈值即非零退出。

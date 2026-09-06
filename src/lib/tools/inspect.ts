@@ -42,7 +42,7 @@ export const regex: [ToolMeta, ToolImpl] = [
         label: '测试文本',
         mono: true,
         sample:
-          'white@mailpasta.de 是内部地址，\njudy2006969@gmail.com 是对外地址。\n联系 eyebrowkang@mailpasta.de 获取权限。',
+          'alice@example.com 是内部地址，\nbob@example.org 是对外地址。\n联系 admin@example.net 获取权限。',
       },
       {
         id: 'replace',
